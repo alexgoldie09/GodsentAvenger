@@ -1,5 +1,3 @@
-// Playstation GODs All Rights Reserved.
-
+// Alex Goldberg rights reserved
 
 #include "GameModes/GodsentBaseGameMode.h"
-
