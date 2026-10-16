@@ -8,6 +8,7 @@
 #include "GodsentGameplayAbility.generated.h"
 
 class UGodsentAbilitySystemComponent;
+class UPawnCombatComponent;
 
 UENUM(BlueprintType)
 enum class EGodsentAbilityActivationPolicy : uint8
@@ -18,7 +19,6 @@ enum class EGodsentAbilityActivationPolicy : uint8
 
 /**
  * Base class for every Godsent ability (hero and enemy).
- * GetPawnCombatComponentFromActorInfo comes back in stage 2 with the combat components.
  */
 UCLASS()
 class GODSENTAVENGER_API UGodsentGameplayAbility : public UGameplayAbility
@@ -34,6 +34,10 @@ protected:
 	/// OnGiven abilities activate as soon as they're granted and are removed when they end
 	UPROPERTY(EditDefaultsOnly, Category = "GodsentAbility")
 	EGodsentAbilityActivationPolicy AbilityActivationPolicy = EGodsentAbilityActivationPolicy::OnTriggered;
+
+	/// Gets the owner's combat component
+	UFUNCTION(BlueprintPure, Category = "Godsent|Ability")
+	UPawnCombatComponent* GetPawnCombatComponentFromActorInfo() const;
 
 	/// Gets the owner's Godsent Ability System Component
 	UFUNCTION(BlueprintPure, Category = "Godsent|Ability")

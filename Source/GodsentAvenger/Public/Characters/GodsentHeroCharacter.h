@@ -11,10 +11,11 @@ class USpringArmComponent;
 class UCameraComponent;
 class UDataAsset_InputConfig;
 class UHeroUIComponent;
+class UHeroCombatComponent;
 struct FInputActionValue;
 
 /**
- * The player's heir. The Hero Combat Component is added back in stage 2.
+ * The player's heir.
  */
 UCLASS()
 class GODSENTAVENGER_API AGodsentHeroCharacter : public AGodsentBaseCharacter
@@ -24,10 +25,16 @@ class GODSENTAVENGER_API AGodsentHeroCharacter : public AGodsentBaseCharacter
 public:
 	AGodsentHeroCharacter();
 
+	//~ Begin IPawnCombatInterface Interface
+	virtual UPawnCombatComponent* GetPawnCombatComponent() const override;
+	//~ End IPawnCombatInterface Interface
+
 	//~ Begin IPawnUIInterface Interface
 	virtual UPawnUIComponent* GetPawnUIComponent() const override;
 	virtual UHeroUIComponent* GetHeroUIComponent() const override;
 	//~ End IPawnUIInterface Interface
+
+	FORCEINLINE UHeroCombatComponent* GetHeroCombatComponent() const { return HeroCombatComponent; }
 
 protected:
 	//~ Begin APawn Interface.
@@ -42,6 +49,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCameraComponent> FollowCamera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UHeroCombatComponent> HeroCombatComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UHeroUIComponent> HeroUIComponent;

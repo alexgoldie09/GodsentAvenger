@@ -22,6 +22,11 @@ public:
 	virtual FGenericTeamId GetGenericTeamId() const override;
 	//~ End IGenericTeamAgentInterface Interface.
 
+	/// Console command for testing skill tiers until the skill tree exists, e.g.
+	/// "GodsentSetAbilityLevel Player.Ability.Dodge 3" (Graced Evasion) or "GodsentSetAbilityLevel Player.Ability.Attack.Light 2" (Combo)
+	UFUNCTION(Exec)
+	void GodsentSetAbilityLevel(FName AbilityTagName, int32 NewLevel);
+
 private:
 	FGenericTeamId HeroTeamId;
 };

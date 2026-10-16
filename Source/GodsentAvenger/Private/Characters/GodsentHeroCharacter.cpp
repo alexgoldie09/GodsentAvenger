@@ -11,6 +11,7 @@
 #include "InputActionValue.h"
 #include "GodsentGameplayTags.h"
 #include "AbilitySystem/GodsentAbilitySystemComponent.h"
+#include "Components/Combat/HeroCombatComponent.h"
 #include "Components/Input/GodsentInputComponent.h"
 #include "Components/UI/HeroUIComponent.h"
 #include "DataAssets/Input/DataAsset_InputConfig.h"
@@ -40,7 +41,13 @@ AGodsentHeroCharacter::AGodsentHeroCharacter()
 	GetCharacterMovement()->MaxWalkSpeed = 400.f; // Becomes the MoveSpeed attribute's default
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 
+	HeroCombatComponent = CreateDefaultSubobject<UHeroCombatComponent>(TEXT("HeroCombatComponent"));
 	HeroUIComponent = CreateDefaultSubobject<UHeroUIComponent>(TEXT("HeroUIComponent"));
+}
+
+UPawnCombatComponent* AGodsentHeroCharacter::GetPawnCombatComponent() const
+{
+	return HeroCombatComponent;
 }
 
 UPawnUIComponent* AGodsentHeroCharacter::GetPawnUIComponent() const

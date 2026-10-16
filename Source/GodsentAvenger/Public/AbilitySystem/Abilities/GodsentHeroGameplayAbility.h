@@ -8,10 +8,10 @@
 
 class AGodsentHeroCharacter;
 class AGodsentHeroController;
+class UHeroCombatComponent;
 
 /**
  * Base class for the hero's abilities.
- * GetHeroCombatComponentFromActorInfo and CreateHeroDamageEffectSpecHandle come back in stage 2.
  */
 UCLASS()
 class GODSENTAVENGER_API UGodsentHeroGameplayAbility : public UGodsentGameplayAbility
@@ -26,6 +26,15 @@ public:
 	/// Gets (and caches) the hero's player controller
 	UFUNCTION(BlueprintPure, Category = "Godsent|Ability")
 	AGodsentHeroController* GetHeroControllerFromActorInfo();
+
+	/// Gets the hero's combat component
+	UFUNCTION(BlueprintPure, Category = "Godsent|Ability")
+	UHeroCombatComponent* GetHeroCombatComponentFromActorInfo();
+
+	/// Builds the damage spec for a hero attack: weapon base damage plus the combo count for the attack type.
+	/// The damage calculation scales it by AttackPower / DefensePower.
+	UFUNCTION(BlueprintPure, Category = "Godsent|Ability")
+	FGameplayEffectSpecHandle CreateHeroDamageEffectSpecHandle(TSubclassOf<UGameplayEffect> EffectClass, float InWeaponBaseDamage, FGameplayTag InCurrentAttackTypeTag, int32 InUsedComboCount);
 
 	/// Gets the total and remaining time of the cooldown effect carrying InCooldownTag.
 	/// Returns true while the cooldown is still running.

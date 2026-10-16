@@ -23,6 +23,19 @@ public:
 	/// Cancels active MustBeHeld abilities bound to the released input tag
 	void OnAbilityInputReleased(const FGameplayTag& InputTag);
 
+	/// Grants one hero ability at a level, bound to its input tag (used by the skill tree to unlock a skill)
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Ability", meta = (ApplyLevel = "1"))
+	FGameplayAbilitySpecHandle GrantHeroAbility(const FGodsentHeroAbilitySet& InAbilitySet, int32 ApplyLevel);
+
+	/// Sets the level of every granted ability whose Asset Tags contain AbilityTag exactly
+	/// (used by the skill tree to upgrade a skill, e.g. Hop -> Leap -> Graced Evasion). Returns false if none was found.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Ability")
+	bool SetAbilityLevelByTag(FGameplayTag AbilityTag, int32 NewLevel);
+
+	/// Gets the level of the first granted ability whose Asset Tags contain AbilityTag exactly, or 0 if it isn't granted
+	UFUNCTION(BlueprintPure, Category = "Godsent|Ability")
+	int32 GetAbilityLevelByTag(FGameplayTag AbilityTag) const;
+
 	/// Grants a list of hero abilities at a level, binding each to its input tag.
 	/// Replaces the tutorial's GrantHeroWeaponAbilities so the weapon and the skill tree can share it.
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Ability", meta = (ApplyLevel = "1"))

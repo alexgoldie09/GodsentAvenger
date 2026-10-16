@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "Interfaces/PawnCombatInterface.h"
 #include "Interfaces/PawnUIInterface.h"
 #include "GodsentBaseCharacter.generated.h"
 
@@ -16,10 +17,9 @@ struct FOnAttributeChangeData;
 
 /**
  * Shared base for the hero and enemies: ASC, attribute set, motion warping and startup data.
- * IPawnCombatInterface is added back in stage 2 with the combat components.
  */
 UCLASS()
-class GODSENTAVENGER_API AGodsentBaseCharacter : public ACharacter, public IAbilitySystemInterface, public IPawnUIInterface
+class GODSENTAVENGER_API AGodsentBaseCharacter : public ACharacter, public IAbilitySystemInterface, public IPawnCombatInterface, public IPawnUIInterface
 {
 	GENERATED_BODY()
 
@@ -29,6 +29,10 @@ public:
 	//~ Begin IAbilitySystemInterface Interface
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	//~ End IAbilitySystemInterface Interface
+
+	//~ Begin IPawnCombatInterface Interface
+	virtual UPawnCombatComponent* GetPawnCombatComponent() const override;
+	//~ End IPawnCombatInterface Interface
 
 	//~ Begin IPawnUIInterface Interface
 	virtual UPawnUIComponent* GetPawnUIComponent() const override;

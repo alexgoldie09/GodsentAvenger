@@ -41,21 +41,65 @@ void UGodsentAbilitySystemComponent::OnAbilityInputReleased(const FGameplayTag& 
 	}
 }
 
+/// Grants one hero ability at a level, bound to its input tag
+FGameplayAbilitySpecHandle UGodsentAbilitySystemComponent::GrantHeroAbility(const FGodsentHeroAbilitySet& InAbilitySet, int32 ApplyLevel)
+{
+	if (!InAbilitySet.IsValid())
+		return FGameplayAbilitySpecHandle();
+
+	FGameplayAbilitySpec AbilitySpec(InAbilitySet.AbilityToGrant);
+	AbilitySpec.SourceObject = GetAvatarActor();
+	AbilitySpec.Level = ApplyLevel;
+	AbilitySpec.GetDynamicSpecSourceTags().AddTag(InAbilitySet.InputTag);
+
+	return GiveAbility(AbilitySpec);
+}
+
+/// Sets the level of every granted ability whose Asset Tags contain AbilityTag exactly
+bool UGodsentAbilitySystemComponent::SetAbilityLevelByTag(FGameplayTag AbilityTag, int32 NewLevel)
+{
+	if (!AbilityTag.IsValid())
+		return false;
+
+	ABILITYLIST_SCOPE_LOCK();
+
+	bool bFound = false;
+
+	for (FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
+	{
+		if (!AbilitySpec.Ability || !AbilitySpec.Ability->GetAssetTags().HasTagExact(AbilityTag))
+			continue;
+
+		AbilitySpec.Level = FMath::Max(NewLevel, 1);
+		MarkAbilitySpecDirty(AbilitySpec);
+		bFound = true;
+	}
+
+	return bFound;
+}
+
+/// Gets the level of the first granted ability whose Asset Tags contain AbilityTag exactly, or 0 if it isn't granted
+int32 UGodsentAbilitySystemComponent::GetAbilityLevelByTag(FGameplayTag AbilityTag) const
+{
+	for (const FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
+	{
+		if (AbilitySpec.Ability && AbilitySpec.Ability->GetAssetTags().HasTagExact(AbilityTag))
+			return AbilitySpec.Level;
+	}
+
+	return 0;
+}
+
 /// Grants a list of hero abilities at a level, binding each to its input tag
 void UGodsentAbilitySystemComponent::GrantHeroAbilitySets(const TArray<FGodsentHeroAbilitySet>& InAbilitySets,
 	int32 ApplyLevel, TArray<FGameplayAbilitySpecHandle>& OutGrantedAbilitySpecHandles)
 {
 	for (const FGodsentHeroAbilitySet& AbilitySet : InAbilitySets)
 	{
-		if (!AbilitySet.IsValid())
-			continue;
+		const FGameplayAbilitySpecHandle GrantedHandle = GrantHeroAbility(AbilitySet, ApplyLevel);
 
-		FGameplayAbilitySpec AbilitySpec(AbilitySet.AbilityToGrant);
-		AbilitySpec.SourceObject = GetAvatarActor();
-		AbilitySpec.Level = ApplyLevel;
-		AbilitySpec.GetDynamicSpecSourceTags().AddTag(AbilitySet.InputTag);
-
-		OutGrantedAbilitySpecHandles.AddUnique(GiveAbility(AbilitySpec));
+		if (GrantedHandle.IsValid())
+			OutGrantedAbilitySpecHandles.AddUnique(GrantedHandle);
 	}
 }
 

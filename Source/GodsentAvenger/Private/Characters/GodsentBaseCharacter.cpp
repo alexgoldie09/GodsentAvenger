@@ -24,6 +24,12 @@ UAbilitySystemComponent* AGodsentBaseCharacter::GetAbilitySystemComponent() cons
 	return GetGodsentAbilitySystemComponent();
 }
 
+/// The base class has no combat component; the hero and enemy classes override this
+UPawnCombatComponent* AGodsentBaseCharacter::GetPawnCombatComponent() const
+{
+	return nullptr;
+}
+
 /// The base class has no UI component; the hero and enemy classes override this
 UPawnUIComponent* AGodsentBaseCharacter::GetPawnUIComponent() const
 {

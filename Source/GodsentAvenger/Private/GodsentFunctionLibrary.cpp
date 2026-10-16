@@ -5,6 +5,8 @@
 #include "GenericTeamAgentInterface.h"
 #include "GodsentGameplayTags.h"
 #include "AbilitySystem/GodsentAbilitySystemComponent.h"
+#include "Components/Combat/PawnCombatComponent.h"
+#include "Interfaces/PawnCombatInterface.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
@@ -48,6 +50,26 @@ void UGodsentFunctionLibrary::BP_DoesActorHaveTag(AActor* InActor, FGameplayTag 
 	EGodsentConfirmType& OutConfirmType)
 {
 	OutConfirmType = NativeDoesActorHaveTag(InActor, TagToCheck) ? EGodsentConfirmType::Yes : EGodsentConfirmType::No;
+}
+
+/// Gets an actor's combat component through IPawnCombatInterface, or nullptr
+UPawnCombatComponent* UGodsentFunctionLibrary::NativeGetPawnCombatComponentFromActor(AActor* InActor)
+{
+	check(InActor);
+
+	if (IPawnCombatInterface* PawnCombatInterface = Cast<IPawnCombatInterface>(InActor))
+		return PawnCombatInterface->GetPawnCombatComponent();
+
+	return nullptr;
+}
+
+/// Gets an actor's combat component, with Valid and Invalid exec pins
+UPawnCombatComponent* UGodsentFunctionLibrary::BP_GetPawnCombatComponentFromActor(AActor* InActor,
+	EGodsentValidType& OutValidType)
+{
+	UPawnCombatComponent* PawnCombatComponent = NativeGetPawnCombatComponentFromActor(InActor);
+	OutValidType = PawnCombatComponent ? EGodsentValidType::Valid : EGodsentValidType::Invalid;
+	return PawnCombatComponent;
 }
 
 /// Checks whether TargetPawn is on a different team to QueryPawn
@@ -106,6 +128,61 @@ bool UGodsentFunctionLibrary::IsValidBlock(AActor* InAttacker, AActor* InDefende
 
 	const float DotResult = FVector::DotProduct(InAttacker->GetActorForwardVector(), InDefender->GetActorForwardVector());
 	return DotResult < Threshold;
+}
+
+/// Works out how a hit on InDefender is blocked
+EGodsentBlockResult UGodsentFunctionLibrary::NativeResolveBlock(AActor* InAttacker, AActor* InDefender,
+	bool bAttackIsUnblockable, float FacingThreshold)
+{
+	check(InAttacker && InDefender);
+
+	if (bAttackIsUnblockable || !NativeDoesActorHaveTag(InDefender, GodsentGameplayTags::Player_Status_Blocking))
+		return EGodsentBlockResult::None;
+
+	// Blocks only work while facing the attacker
+	if (!IsValidBlock(InAttacker, InDefender, FacingThreshold))
+		return EGodsentBlockResult::None;
+
+	if (NativeDoesActorHaveTag(InDefender, GodsentGameplayTags::Player_Status_Parrying))
+		return EGodsentBlockResult::Parried;
+
+	if (NativeDoesActorHaveTag(InDefender, GodsentGameplayTags::Player_Status_FullBlock))
+		return EGodsentBlockResult::FullBlocked;
+
+	return EGodsentBlockResult::Blocked;
+}
+
+/// Sends the block or parry events for a resolved hit. Returns true when the hit should deal no damage.
+bool UGodsentFunctionLibrary::NativeHandleBlockResult(AActor* InAttacker, AActor* InDefender, EGodsentBlockResult BlockResult)
+{
+	if (BlockResult == EGodsentBlockResult::None)
+		return false;
+
+	FGameplayEventData EventData;
+	EventData.Instigator = InAttacker;
+	EventData.Target = InDefender;
+
+	if (BlockResult == EGodsentBlockResult::Parried)
+	{
+		// The block ability plays the parry FX and (later) opens the riposte
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(InDefender, GodsentGameplayTags::Player_Event_Parry, EventData);
+
+		// Stagger the attacker if it can react (projectiles can't)
+		if (Cast<APawn>(InAttacker))
+		{
+			FGameplayEventData StaggerData;
+			StaggerData.Instigator = InDefender;
+			StaggerData.Target = InAttacker;
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(InAttacker, GodsentGameplayTags::Shared_Event_HitReact, StaggerData);
+		}
+
+		return true;
+	}
+
+	// Blocked and FullBlocked both tell the block ability a hit was blocked (FX and stamina cost)
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(InDefender, GodsentGameplayTags::Player_Event_SuccessfulBlock, EventData);
+
+	return BlockResult == EGodsentBlockResult::FullBlocked;
 }
 
 /// Applies a gameplay effect spec to a target actor using the instigator's ASC

@@ -5,6 +5,7 @@
 #include "GodsentFunctionLibrary.h"
 #include "GodsentGameplayTags.h"
 #include "AbilitySystem/GodsentAbilitySystemComponent.h"
+#include "Components/Combat/PawnCombatComponent.h"
 #include "GameFramework/Pawn.h"
 
 /// Activates OnGiven abilities as soon as they're granted
@@ -30,6 +31,12 @@ void UGodsentGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle
 		if (ActorInfo)
 			ActorInfo->AbilitySystemComponent->ClearAbility(Handle);
 	}
+}
+
+/// Gets the owner's combat component
+UPawnCombatComponent* UGodsentGameplayAbility::GetPawnCombatComponentFromActorInfo() const
+{
+	return GetAvatarActorFromActorInfo()->FindComponentByClass<UPawnCombatComponent>();
 }
 
 /// Gets the owner's Godsent Ability System Component

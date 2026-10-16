@@ -3,8 +3,11 @@
 #include "AbilitySystem/Abilities/GodsentHeroGameplayAbility.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystem/GodsentAttributeSet.h"
+#include "AbilitySystem/GodsentAbilitySystemComponent.h"
 #include "Characters/GodsentHeroCharacter.h"
 #include "Controllers/GodsentHeroController.h"
+#include "Components/Combat/HeroCombatComponent.h"
+#include "GodsentGameplayTags.h"
 
 /// Gets (and caches) the hero character that owns this ability
 AGodsentHeroCharacter* UGodsentHeroGameplayAbility::GetHeroCharacterFromActorInfo()
@@ -22,6 +25,38 @@ AGodsentHeroController* UGodsentHeroGameplayAbility::GetHeroControllerFromActorI
 		CachedHeroController = Cast<AGodsentHeroController>(CurrentActorInfo->PlayerController.Get());
 
 	return CachedHeroController.IsValid() ? CachedHeroController.Get() : nullptr;
+}
+
+/// Gets the hero's combat component
+UHeroCombatComponent* UGodsentHeroGameplayAbility::GetHeroCombatComponentFromActorInfo()
+{
+	AGodsentHeroCharacter* HeroCharacter = GetHeroCharacterFromActorInfo();
+	return HeroCharacter ? HeroCharacter->GetHeroCombatComponent() : nullptr;
+}
+
+/// Builds the damage spec for a hero attack
+FGameplayEffectSpecHandle UGodsentHeroGameplayAbility::CreateHeroDamageEffectSpecHandle(
+	TSubclassOf<UGameplayEffect> EffectClass, float InWeaponBaseDamage, FGameplayTag InCurrentAttackTypeTag,
+	int32 InUsedComboCount)
+{
+	check(EffectClass);
+
+	FGameplayEffectContextHandle ContextHandle = GetGodsentAbilitySystemComponentFromActorInfo()->MakeEffectContext();
+	ContextHandle.SetAbility(this);
+	ContextHandle.AddSourceObject(GetAvatarActorFromActorInfo());
+	ContextHandle.AddInstigator(GetAvatarActorFromActorInfo(), GetAvatarActorFromActorInfo());
+
+	FGameplayEffectSpecHandle EffectSpecHandle = GetGodsentAbilitySystemComponentFromActorInfo()->MakeOutgoingSpec(
+		EffectClass,
+		GetAbilityLevel(),
+		ContextHandle);
+
+	EffectSpecHandle.Data->SetSetByCallerMagnitude(GodsentGameplayTags::Shared_SetByCaller_BaseDamage, InWeaponBaseDamage);
+
+	if (InCurrentAttackTypeTag.IsValid())
+		EffectSpecHandle.Data->SetSetByCallerMagnitude(InCurrentAttackTypeTag, InUsedComboCount);
+
+	return EffectSpecHandle;
 }
 
 /// Gets the total and remaining time of the cooldown effect carrying InCooldownTag

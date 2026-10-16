@@ -26,6 +26,7 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Equip_Sword, "Player.Event.Equip.Sword");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_HitPause, "Player.Event.HitPause");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SuccessfulBlock, "Player.Event.SuccessfulBlock");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Parry, "Player.Event.Parry");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchTarget_Left, "Player.Event.SwitchTarget.Left");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchTarget_Right, "Player.Event.SwitchTarget.Right");
 
@@ -45,6 +46,8 @@ namespace GodsentGameplayTags
 	/** Player Status Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Dodging, "Player.Status.Dodging");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Blocking, "Player.Status.Blocking");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Parrying, "Player.Status.Parrying");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_FullBlock, "Player.Status.FullBlock");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Sprinting, "Player.Status.Sprinting");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_TargetLock, "Player.Status.TargetLock");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_StaminaRegenBlocked, "Player.Status.StaminaRegenBlocked");

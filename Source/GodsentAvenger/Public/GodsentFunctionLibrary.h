@@ -12,10 +12,10 @@
 #include "GodsentFunctionLibrary.generated.h"
 
 class UGodsentAbilitySystemComponent;
+class UPawnCombatComponent;
 
 /**
  * Shared helper functions for C++ and Blueprints.
- * The combat component helpers (Get Pawn Combat Component From Actor) come back in stage 2.
  */
 UCLASS()
 class GODSENTAVENGER_API UGodsentFunctionLibrary : public UBlueprintFunctionLibrary
@@ -41,6 +41,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Godsent|FunctionLibrary", meta = (DisplayName = "Does Actor Have Tag", ExpandEnumAsExecs = "OutConfirmType"))
 	static void BP_DoesActorHaveTag(AActor* InActor, FGameplayTag TagToCheck, EGodsentConfirmType& OutConfirmType);
 
+	/// Gets an actor's combat component through IPawnCombatInterface, or nullptr
+	static UPawnCombatComponent* NativeGetPawnCombatComponentFromActor(AActor* InActor);
+
+	/// Gets an actor's combat component, with Valid and Invalid exec pins
+	UFUNCTION(BlueprintCallable, Category = "Godsent|FunctionLibrary", meta = (DisplayName = "Get Pawn Combat Component From Actor", ExpandEnumAsExecs = "OutValidType"))
+	static UPawnCombatComponent* BP_GetPawnCombatComponentFromActor(AActor* InActor, EGodsentValidType& OutValidType);
+
 	/// Checks whether TargetPawn is on a different team to QueryPawn
 	UFUNCTION(BlueprintPure, Category = "Godsent|FunctionLibrary")
 	static bool IsTargetPawnHostile(APawn* QueryPawn, APawn* TargetPawn);
@@ -56,6 +63,15 @@ public:
 	/// Checks whether the defender is facing the attacker closely enough for a block to count
 	UFUNCTION(BlueprintPure, Category = "Godsent|FunctionLibrary")
 	static bool IsValidBlock(AActor* InAttacker, AActor* InDefender, float Threshold = 0.f);
+
+	/// Works out how a hit on InDefender is blocked:
+	/// not blocking, not facing the attacker, or an unblockable attack -> None;
+	/// inside the parry window -> Parried; with the full-block skill -> FullBlocked; otherwise -> Blocked
+	static EGodsentBlockResult NativeResolveBlock(AActor* InAttacker, AActor* InDefender, bool bAttackIsUnblockable, float FacingThreshold = 0.f);
+
+	/// Sends the block or parry events for a resolved hit.
+	/// Returns true when the hit should deal no damage (FullBlocked or Parried).
+	static bool NativeHandleBlockResult(AActor* InAttacker, AActor* InDefender, EGodsentBlockResult BlockResult);
 
 	/// Applies a gameplay effect spec to a target actor using the instigator's ASC
 	UFUNCTION(BlueprintCallable, Category = "Godsent|FunctionLibrary")
