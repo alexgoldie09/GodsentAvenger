@@ -70,19 +70,8 @@ void UGodsentGameplayAbility::ApplyGameplayEffectSpecHandleToHitResults(const FG
 		if (!HitPawn || !UGodsentFunctionLibrary::IsTargetPawnHostile(OwningPawn, HitPawn))
 			continue;
 
-		const FActiveGameplayEffectHandle ActiveGameplayEffectHandle = NativeApplyEffectSpecHandleToTarget(HitPawn, InSpecHandle);
-
-		if (ActiveGameplayEffectHandle.WasSuccessfullyApplied())
-		{
-			FGameplayEventData EventData;
-			EventData.Instigator = OwningPawn;
-			EventData.Target = HitPawn;
-
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
-				HitPawn,
-				GodsentGameplayTags::Shared_Event_HitReact,
-				EventData);
-		}
+		// Stagger is handled by the attribute set when the spec carries Shared.Effect.HitStun
+		NativeApplyEffectSpecHandleToTarget(HitPawn, InSpecHandle);
 	}
 }
 

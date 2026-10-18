@@ -29,6 +29,7 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Parry, "Player.Event.Parry");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchTarget_Left, "Player.Event.SwitchTarget.Left");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchTarget_Right, "Player.Event.SwitchTarget.Right");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Dodge_Takeoff, "Player.Event.Dodge.Takeoff");
 
 	/** Player Ability Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Equip_Sword, "Player.Ability.Equip.Sword");
@@ -81,6 +82,9 @@ namespace GodsentGameplayTags
 
 	/** Shared Set By Caller Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_BaseDamage, "Shared.SetByCaller.BaseDamage");
+	
+	/** Shared Effect Tags **/
+	UE_DEFINE_GAMEPLAY_TAG(Shared_Effect_HitStun, "Shared.Effect.HitStun");
 
 	/** Shared Ability Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Ability_HitReact, "Shared.Ability.HitReact");

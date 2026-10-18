@@ -25,6 +25,10 @@ class GODSENTAVENGER_API AGodsentBaseCharacter : public ACharacter, public IAbil
 
 public:
 	AGodsentBaseCharacter();
+	
+	/// Fires on every hit that deals damage, for visual feedback only (flash, sound, flinch). Not gated by any tags.
+	UFUNCTION(BlueprintImplementableEvent, Category = "Combat", meta = (DisplayName = "On Damage Taken"))
+	void BP_OnDamageTaken(float DamageAmount, AActor* DamageInstigator);
 
 	//~ Begin IAbilitySystemInterface Interface
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;

@@ -121,13 +121,16 @@ FGameplayTag UGodsentFunctionLibrary::ComputeHitReactDirectionTag(AActor* InAtta
 	return GodsentGameplayTags::Shared_Status_HitReact_Front;
 }
 
-/// Checks whether the defender is facing the attacker closely enough for a block to count
+/// Checks whether the attacker is in front of the defender closely enough for a block to count
 bool UGodsentFunctionLibrary::IsValidBlock(AActor* InAttacker, AActor* InDefender, float Threshold)
 {
 	check(InAttacker && InDefender);
 
-	const float DotResult = FVector::DotProduct(InAttacker->GetActorForwardVector(), InDefender->GetActorForwardVector());
-	return DotResult < Threshold;
+	const FVector DefenderForward = InDefender->GetActorForwardVector().GetSafeNormal2D();
+	const FVector DefenderToAttacker = (InAttacker->GetActorLocation() - InDefender->GetActorLocation()).GetSafeNormal2D();
+
+	// Threshold is negative (-0.1), so the attacker must be within ~84° either side of where we're facing
+	return FVector::DotProduct(DefenderForward, DefenderToAttacker) > -Threshold;
 }
 
 /// Works out how a hit on InDefender is blocked
@@ -164,17 +167,8 @@ bool UGodsentFunctionLibrary::NativeHandleBlockResult(AActor* InAttacker, AActor
 
 	if (BlockResult == EGodsentBlockResult::Parried)
 	{
-		// The block ability plays the parry FX and (later) opens the riposte
+		// The block ability plays the parry response and decides whether the attacker staggers (Riposte tier)
 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(InDefender, GodsentGameplayTags::Player_Event_Parry, EventData);
-
-		// Stagger the attacker if it can react (projectiles can't)
-		if (Cast<APawn>(InAttacker))
-		{
-			FGameplayEventData StaggerData;
-			StaggerData.Instigator = InDefender;
-			StaggerData.Target = InAttacker;
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(InAttacker, GodsentGameplayTags::Shared_Event_HitReact, StaggerData);
-		}
 
 		return true;
 	}

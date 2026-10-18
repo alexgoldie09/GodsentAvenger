@@ -97,6 +97,9 @@ private:
 
 	/// Sends the current stamina percentage to the hero's UI component
 	void BroadcastStaminaPercent();
+	
+	/// Plays damage feedback and, if the hit carries hit stun, sends the stagger event
+	void HandleDamageReactions(const FGameplayEffectModCallbackData& Data, float DamageDone);
 
 	/// Cached UI interface of the owning pawn
 	TWeakInterfacePtr<IPawnUIInterface> CachedPawnUIInterface;

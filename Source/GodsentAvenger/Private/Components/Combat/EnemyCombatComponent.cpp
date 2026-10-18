@@ -2,6 +2,7 @@
 
 #include "Components/Combat/EnemyCombatComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "GodsentDebugHelper.h"
 #include "Components/BoxComponent.h"
 #include "GodsentFunctionLibrary.h"
@@ -13,12 +14,6 @@ void UEnemyCombatComponent::OnHitTargetActor(AActor* HitActor)
 {
 	if (OverlappedActors.Contains(HitActor))
 		return;
-	
-#if !UE_BUILD_SHIPPING
-	const FString AttackerName = GetNameSafe(GetOwningPawn());
-	const FString TargetName = GetNameSafe(HitActor);
-	Debug::Print(FString::Printf(TEXT("[EnemyHit] %s -> %s"), *AttackerName, *TargetName), FColor::Orange);
-#endif
 
 	OverlappedActors.AddUnique(HitActor);
 
@@ -29,31 +24,26 @@ void UEnemyCombatComponent::OnHitTargetActor(AActor* HitActor)
 	const bool bIsMyAttackUnblockable = UGodsentFunctionLibrary::NativeDoesActorHaveTag(GetOwningPawn(), GodsentGameplayTags::Enemy_Status_Unblockable);
 
 	const EGodsentBlockResult BlockResult = UGodsentFunctionLibrary::NativeResolveBlock(GetOwningPawn(), HitActor, bIsMyAttackUnblockable, BlockFacingThreshold);
-
-#if !UE_BUILD_SHIPPING
-	const TCHAR* BlockResultText = TEXT("None");
-	switch (BlockResult)
-	{
-	case EGodsentBlockResult::Blocked:     BlockResultText = TEXT("Blocked"); break;
-	case EGodsentBlockResult::FullBlocked: BlockResultText = TEXT("FullBlocked"); break;
-	case EGodsentBlockResult::Parried:     BlockResultText = TEXT("Parried"); break;
-	default:                               BlockResultText = TEXT("None"); break;
-	}
-
-	Debug::Print(
-		FString::Printf(
-			TEXT("[EnemyHit] %s -> %s | Result=%s | Unblockable=%s"),
-			*AttackerName,
-			*TargetName,
-			BlockResultText,
-			bIsMyAttackUnblockable ? TEXT("true") : TEXT("false")),
-		FColor::Cyan);
-#endif
 	
 	// Full block and parry stop the damage; a partial block still lets it through (reduced by the block's defence bonus)
 	if (UGodsentFunctionLibrary::NativeHandleBlockResult(GetOwningPawn(), HitActor, BlockResult))
 		return;
-	
+
+	// Hit landed outside the guard (from behind, side-on or unblockable) while blocking: break the guard
+	// so the block defence bonus drops and the hit react is free to play
+	bool bGuardBroken = false;
+
+	if (BlockResult == EGodsentBlockResult::None &&
+		UGodsentFunctionLibrary::NativeDoesActorHaveTag(HitActor, GodsentGameplayTags::Player_Status_Blocking))
+	{
+		if (UAbilitySystemComponent* HitASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActor))
+		{
+			const FGameplayTagContainer BlockAbilityTags(GodsentGameplayTags::Player_Ability_Block);
+			HitASC->CancelAbilities(&BlockAbilityTags);
+			bGuardBroken = true;
+		}
+	}
+
 	FGameplayEventData EventData;
 	EventData.Instigator = GetOwningPawn();
 	EventData.Target = HitActor;
@@ -62,6 +52,17 @@ void UEnemyCombatComponent::OnHitTargetActor(AActor* HitActor)
 		GetOwningPawn(),
 		GodsentGameplayTags::Shared_Event_MeleeHit,
 		EventData);
+
+	// A broken guard always staggers, even when this attack doesn't carry hit stun
+	// (sent after MeleeHit so the damage lands first, and skipped if that damage killed the target)
+	if (bGuardBroken && !UGodsentFunctionLibrary::NativeDoesActorHaveTag(HitActor, GodsentGameplayTags::Shared_Status_Dead))
+	{
+		FGameplayEventData StaggerData;
+		StaggerData.Instigator = GetOwningPawn();
+		StaggerData.Target = HitActor;
+
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, GodsentGameplayTags::Shared_Event_HitReact, StaggerData);
+	}
 }
 
 /// Turns the left or right hand collision box on or off

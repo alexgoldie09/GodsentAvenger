@@ -7,6 +7,9 @@
 #include "Interfaces/PawnUIInterface.h"
 #include "Components/UI/PawnUIComponent.h"
 #include "Components/UI/HeroUIComponent.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "Characters/GodsentBaseCharacter.h"
+#include "GodsentDebugHelper.h"
 
 UGodsentAttributeSet::UGodsentAttributeSet()
 {
@@ -67,6 +70,9 @@ void UGodsentAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCal
 		const float DamageDone = GetDamageTaken();
 		SetDamageTaken(0.f);
 		SetCurrentHealth(FMath::Clamp(GetCurrentHealth() - DamageDone, 0.f, GetMaxHealth()));
+
+		if (DamageDone > 0.f)
+			HandleDamageReactions(Data, DamageDone);
 	}
 	else if (Attribute == GetCurrentHealthAttribute())
 	{
@@ -119,4 +125,31 @@ void UGodsentAttributeSet::BroadcastStaminaPercent()
 	if (IPawnUIInterface* PawnUIInterface = GetPawnUIInterface())
 		if (UHeroUIComponent* HeroUIComponent = PawnUIInterface->GetHeroUIComponent())
 			HeroUIComponent->OnCurrentStaminaChanged.Broadcast(GetCurrentStamina() / GetMaxStamina());
+}
+
+/// Plays damage feedback on every damaging hit, and staggers the target only when the hit carries hit stun
+void UGodsentAttributeSet::HandleDamageReactions(const FGameplayEffectModCallbackData& Data, float DamageDone)
+{
+	AActor* TargetActor = Data.Target.GetAvatarActor();
+	AActor* InstigatorActor = Data.EffectSpec.GetContext().GetInstigator();
+
+	FGameplayTagContainer SpecAssetTags;
+	Data.EffectSpec.GetAllAssetTags(SpecAssetTags);
+
+	// Feedback always plays, staggered or not
+	if (AGodsentBaseCharacter* TargetCharacter = Cast<AGodsentBaseCharacter>(TargetActor))
+		TargetCharacter->BP_OnDamageTaken(DamageDone, InstigatorActor);
+
+	// A killing blow plays the death ability instead
+	if (GetCurrentHealth() <= 0.f)
+		return;
+	
+	if (!SpecAssetTags.HasTagExact(GodsentGameplayTags::Shared_Effect_HitStun))
+		return;
+
+	FGameplayEventData EventData;
+	EventData.Instigator = InstigatorActor;
+	EventData.Target = TargetActor;
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, GodsentGameplayTags::Shared_Event_HitReact, EventData);
 }

@@ -31,6 +31,7 @@ namespace GodsentGameplayTags
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Event_Parry);
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Event_SwitchTarget_Left);
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Event_SwitchTarget_Right);
+	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Event_Dodge_Takeoff);
 
 	/** Player Ability Tags **/
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Ability_Equip_Sword);
@@ -83,6 +84,9 @@ namespace GodsentGameplayTags
 
 	/** Shared Set By Caller Tags **/
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Shared_SetByCaller_BaseDamage);
+	
+	/** Shared Effect Tags **/
+	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Shared_Effect_HitStun);
 
 	/** Shared Ability Tags **/
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Shared_Ability_HitReact);
