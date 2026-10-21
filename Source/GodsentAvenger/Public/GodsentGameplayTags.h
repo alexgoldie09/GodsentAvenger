@@ -54,6 +54,7 @@ namespace GodsentGameplayTags
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Status_Sprinting);
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Status_TargetLock);
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Status_StaminaRegenBlocked);
+	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_Status_MovementLocked);
 
 	/** Player Set By Caller Tags **/
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Player_SetByCaller_AttackType_Light);

@@ -52,6 +52,7 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Sprinting, "Player.Status.Sprinting");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_TargetLock, "Player.Status.TargetLock");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_StaminaRegenBlocked, "Player.Status.StaminaRegenBlocked");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_MovementLocked, "Player.Status.MovementLocked");
 
 	/** Player Set By Caller Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Player_SetByCaller_AttackType_Light, "Player.SetByCaller.AttackType.Light");

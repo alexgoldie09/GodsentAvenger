@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "GodsentFunctionLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -94,9 +95,12 @@ void AGodsentHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 	GodsentInputComponent->BindAbilityInputAction(InputConfigDataAsset, this, &ThisClass::Input_AbilityInputPressed, &ThisClass::Input_AbilityInputReleased);
 }
 
-/// Moves relative to the camera's yaw
+/// Moves relative to the camera's yaw (ignored while an ability has locked movement)
 void AGodsentHeroCharacter::Input_Move(const FInputActionValue& InputActionValue)
 {
+	if (UGodsentFunctionLibrary::NativeDoesActorHaveTag(this, GodsentGameplayTags::Player_Status_MovementLocked))
+		return;
+
 	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
 	const FRotator MovementRotation(0.f, Controller->GetControlRotation().Yaw, 0.f);
 
