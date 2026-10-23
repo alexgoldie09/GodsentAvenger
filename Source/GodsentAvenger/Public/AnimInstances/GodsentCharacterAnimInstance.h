@@ -36,4 +36,8 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "AnimData|LocomotionData")
 	float LocomotionDirection;
+
+	/// True while airborne (walked off a ledge, mid-dodge after the montage ends, knocked into the air), drives the Fall state
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "AnimData|LocomotionData")
+	bool bIsFalling;
 };

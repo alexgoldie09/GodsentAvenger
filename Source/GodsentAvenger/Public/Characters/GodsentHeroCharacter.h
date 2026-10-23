@@ -12,6 +12,7 @@ class UCameraComponent;
 class UDataAsset_InputConfig;
 class UHeroUIComponent;
 class UHeroCombatComponent;
+class UPointLightComponent;
 struct FInputActionValue;
 
 /**
@@ -36,6 +37,10 @@ public:
 
 	FORCEINLINE UHeroCombatComponent* GetHeroCombatComponent() const { return HeroCombatComponent; }
 
+	/// The Light skill's aura (hidden until the light ability turns it on)
+	UFUNCTION(BlueprintPure, Category = "Light")
+	UPointLightComponent* GetLightAuraComponent() const { return LightAuraComponent; }
+
 protected:
 	//~ Begin APawn Interface.
 	virtual void PossessedBy(AController* NewController) override;
@@ -55,6 +60,10 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UHeroUIComponent> HeroUIComponent;
+
+	/// Point light around the hero for the Light skill tree. Starts hidden; colour and intensity are set in the Blueprint
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Light", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UPointLightComponent> LightAuraComponent;
 #pragma endregion
 
 #pragma region Inputs

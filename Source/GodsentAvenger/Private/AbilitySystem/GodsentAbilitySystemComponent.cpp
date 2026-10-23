@@ -13,10 +13,13 @@ void UGodsentAbilitySystemComponent::OnAbilityInputPressed(const FGameplayTag& I
 	// Defers any ability list changes (e.g. an OnGiven ability clearing itself) until the loop finishes
 	ABILITYLIST_SCOPE_LOCK();
 
-	for (const FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
+	for (FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
 	{
 		if (!AbilitySpec.GetDynamicSpecSourceTags().HasTagExact(InputTag))
 			continue;
+
+		// Marks the button as held, so Wait Input Release (e.g. the charged heal) knows to wait for it
+		AbilitySpec.InputPressed = true;
 
 		// Toggleable abilities cancel when pressed again while active
 		if (InputTag.MatchesTag(GodsentGameplayTags::InputTag_Toggleable) && AbilitySpec.IsActive())
@@ -26,18 +29,43 @@ void UGodsentAbilitySystemComponent::OnAbilityInputPressed(const FGameplayTag& I
 	}
 }
 
-/// Cancels active MustBeHeld abilities bound to the released input tag
+/// Cancels active MustBeHeld abilities bound to the released input tag.
+/// Any other active ability bound to it is told the button came up, which fires Wait Input Release (charged heal).
 void UGodsentAbilitySystemComponent::OnAbilityInputReleased(const FGameplayTag& InputTag)
 {
-	if (!InputTag.IsValid() || !InputTag.MatchesTag(GodsentGameplayTags::InputTag_MustBeHeld))
+	if (!InputTag.IsValid())
 		return;
+
+	const bool bMustBeHeld = InputTag.MatchesTag(GodsentGameplayTags::InputTag_MustBeHeld);
 
 	ABILITYLIST_SCOPE_LOCK();
 
-	for (const FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
+	for (FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
 	{
-		if (AbilitySpec.GetDynamicSpecSourceTags().HasTagExact(InputTag) && AbilitySpec.IsActive())
+		if (!AbilitySpec.GetDynamicSpecSourceTags().HasTagExact(InputTag))
+			continue;
+
+		AbilitySpec.InputPressed = false;
+
+		if (!AbilitySpec.IsActive())
+			continue;
+
+		if (bMustBeHeld)
+		{
 			CancelAbilityHandle(AbilitySpec.Handle);
+			continue;
+		}
+
+		AbilitySpecInputReleased(AbilitySpec);
+
+		// The engine only sends this for its own InputID binding, so send it ourselves for tag-bound input.
+		// The key must match the one Wait Input Release registered with (the active instance's activation key).
+		const UGameplayAbility* PrimaryInstance = AbilitySpec.GetPrimaryInstance();
+		const FPredictionKey ActivationPredictionKey = PrimaryInstance
+			? PrimaryInstance->GetCurrentActivationInfo().GetActivationPredictionKey()
+			: FPredictionKey();
+
+		InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputReleased, AbilitySpec.Handle, ActivationPredictionKey);
 	}
 }
 
@@ -134,4 +162,16 @@ bool UGodsentAbilitySystemComponent::TryActivateAbilityByTag(FGameplayTag Abilit
 		return TryActivateAbility(SpecToActivate->Handle);
 
 	return false;
+}
+
+/// Re-sends every granted hero ability's icon and running cooldown to the HUD
+void UGodsentAbilitySystemComponent::BroadcastHeroAbilityUI()
+{
+	ABILITYLIST_SCOPE_LOCK();
+
+	for (const FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
+	{
+		if (const UGodsentHeroGameplayAbility* HeroAbility = Cast<UGodsentHeroGameplayAbility>(AbilitySpec.Ability))
+			HeroAbility->BroadcastAbilityUI(AbilitySpec, AbilityActorInfo.Get());
+	}
 }

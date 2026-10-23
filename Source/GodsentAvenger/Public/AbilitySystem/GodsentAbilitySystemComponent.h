@@ -20,7 +20,8 @@ public:
 	/// Activates (or toggles off) every granted ability bound to the pressed input tag
 	void OnAbilityInputPressed(const FGameplayTag& InputTag);
 
-	/// Cancels active MustBeHeld abilities bound to the released input tag
+	/// Cancels active MustBeHeld abilities bound to the released input tag;
+	/// tells any other active ability bound to it that the button came up (fires Wait Input Release)
 	void OnAbilityInputReleased(const FGameplayTag& InputTag);
 
 	/// Grants one hero ability at a level, bound to its input tag (used by the skill tree to unlock a skill)
@@ -48,4 +49,9 @@ public:
 	/// Activates a random granted ability matching the tag (used by enemy AI)
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Ability")
 	bool TryActivateAbilityByTag(FGameplayTag AbilityTagToActivate);
+	
+	/// Re-sends every granted hero ability's icon and running cooldown to the HUD.
+	/// Call it from whatever creates the overlay widget, after the widget exists (abilities granted earlier fired before anyone was listening).
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Ability")
+	void BroadcastHeroAbilityUI();
 };

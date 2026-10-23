@@ -51,6 +51,13 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Ability")
 	void ApplyGameplayEffectSpecHandleToHitResults(const FGameplayEffectSpecHandle& InSpecHandle, const TArray<FHitResult>& HitResults);
 
+	/// Applies an effect spec to every living hostile pawn within Radius of Origin (heal release, light aura, later enemy AOEs).
+	/// bCausesHitStun adds Shared.Effect.HitStun to the spec so the hits stagger.
+	/// RequiredTargetTag (optional) limits it to targets carrying that tag, e.g. Enemy.Type.Undead for Greater Light.
+	/// Returns how many targets were hit. Make the spec once (store it in a local variable) before passing it in.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Ability", meta = (AdvancedDisplay = "bDrawDebug"))
+	int32 ApplyEffectSpecHandleToHostilesInRadius(const FGameplayEffectSpecHandle& InSpecHandle, FVector Origin, float Radius, bool bCausesHitStun, FGameplayTag RequiredTargetTag, bool bDrawDebug = false);
+
 	/// Applies an effect spec to a target and returns the active effect handle
 	FActiveGameplayEffectHandle NativeApplyEffectSpecHandleToTarget(AActor* TargetActor, const FGameplayEffectSpecHandle& InSpecHandle);
 };

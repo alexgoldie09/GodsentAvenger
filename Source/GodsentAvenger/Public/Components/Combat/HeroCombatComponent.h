@@ -34,4 +34,17 @@ public:
 
 	/// Sends HitPause as the blade leaves the target
 	virtual void OnWeaponPulledFromTargetActor(AActor* InteractedActor) override;
+
+	/// Remembers the enemy that was just parried (set by the block ability at Hallowed Riposte),
+	/// so the riposte can turn to face it
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Combat")
+	void SetRiposteTarget(AActor* InRiposteTarget) { RiposteTarget = InRiposteTarget; }
+
+	/// The enemy that was last parried, or nullptr if it's gone
+	UFUNCTION(BlueprintPure, Category = "Godsent|Combat")
+	AActor* GetRiposteTarget() const { return RiposteTarget.Get(); }
+
+private:
+	/// Weak so a parried enemy that dies or despawns doesn't linger here
+	TWeakObjectPtr<AActor> RiposteTarget;
 };

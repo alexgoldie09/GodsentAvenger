@@ -8,6 +8,7 @@
 #include "Components/Combat/PawnCombatComponent.h"
 #include "Interfaces/PawnCombatInterface.h"
 #include "Engine/Engine.h"
+#include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -177,6 +178,67 @@ bool UGodsentFunctionLibrary::NativeHandleBlockResult(AActor* InAttacker, AActor
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(InDefender, GodsentGameplayTags::Player_Event_SuccessfulBlock, EventData);
 
 	return BlockResult == EGodsentBlockResult::FullBlocked;
+}
+
+/// Finds every living, non-invincible hostile pawn (with an ability system) within Radius of Origin
+void UGodsentFunctionLibrary::GetHostilePawnsInRadius(APawn* QueryPawn, FVector Origin, float Radius, TArray<APawn*>& OutHostilePawns)
+{
+	OutHostilePawns.Reset();
+
+	if (!QueryPawn || Radius <= 0.f)
+		return;
+
+	UWorld* World = QueryPawn->GetWorld();
+
+	if (!World)
+		return;
+
+	TArray<FOverlapResult> Overlaps;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(GodsentHostilePawnsInRadius), false, QueryPawn);
+
+	World->OverlapMultiByObjectType(
+		Overlaps,
+		Origin,
+		FQuat::Identity,
+		FCollisionObjectQueryParams(ECC_Pawn),
+		FCollisionShape::MakeSphere(Radius),
+		QueryParams);
+
+	for (const FOverlapResult& Overlap : Overlaps)
+	{
+		APawn* OverlappedPawn = Cast<APawn>(Overlap.GetActor());
+
+		// A pawn can overlap with several components, so only count it once
+		if (!OverlappedPawn || OutHostilePawns.Contains(OverlappedPawn))
+			continue;
+
+		// Skip anything without a Godsent ability system (the tag checks below would assert)
+		if (!Cast<UGodsentAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(OverlappedPawn)))
+			continue;
+
+		if (!IsTargetPawnHostile(QueryPawn, OverlappedPawn))
+			continue;
+
+		if (NativeDoesActorHaveTag(OverlappedPawn, GodsentGameplayTags::Shared_Status_Dead) ||
+			NativeDoesActorHaveTag(OverlappedPawn, GodsentGameplayTags::Shared_Status_Invincible))
+			continue;
+
+		OutHostilePawns.Add(OverlappedPawn);
+	}
+}
+
+/// Snaps ActorToRotate (yaw only) to face TargetActor
+void UGodsentFunctionLibrary::RotateActorToFaceTarget(AActor* ActorToRotate, AActor* TargetActor)
+{
+	if (!ActorToRotate || !TargetActor)
+		return;
+
+	const FVector ToTarget = (TargetActor->GetActorLocation() - ActorToRotate->GetActorLocation()).GetSafeNormal2D();
+
+	if (ToTarget.IsNearlyZero())
+		return;
+
+	ActorToRotate->SetActorRotation(FRotator(0.f, ToTarget.Rotation().Yaw, 0.f));
 }
 
 /// Applies a gameplay effect spec to a target actor using the instigator's ASC

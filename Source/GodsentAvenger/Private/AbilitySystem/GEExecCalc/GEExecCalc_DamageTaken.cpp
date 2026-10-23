@@ -66,8 +66,13 @@ void UGEExecCalc_DamageTaken::Execute_Implementation(const FGameplayEffectCustom
 		BaseDamage *= DamageIncreasePercentLight;
 	}
 
+	// Effects tagged Shared.Effect.IgnoreDefense (e.g. Greater Light, enemy magic) skip the target's defence
+	FGameplayTagContainer SpecAssetTags;
+	EffectSpec.GetAllAssetTags(SpecAssetTags);
+	const bool bIgnoreDefense = SpecAssetTags.HasTagExact(GodsentGameplayTags::Shared_Effect_IgnoreDefense);
+
 	// Guard against a target with no defence (the tutorial divided by zero here)
-	const float FinalDamageDone = TargetDefensePower > 0.f
+	const float FinalDamageDone = (!bIgnoreDefense && TargetDefensePower > 0.f)
 		? BaseDamage * SourceAttackPower / TargetDefensePower
 		: BaseDamage * SourceAttackPower;
 

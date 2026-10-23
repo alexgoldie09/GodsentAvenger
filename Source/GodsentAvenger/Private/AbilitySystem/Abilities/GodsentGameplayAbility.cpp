@@ -7,6 +7,7 @@
 #include "AbilitySystem/GodsentAbilitySystemComponent.h"
 #include "Components/Combat/PawnCombatComponent.h"
 #include "GameFramework/Pawn.h"
+#include "DrawDebugHelpers.h"
 
 /// Activates OnGiven abilities as soon as they're granted
 void UGodsentGameplayAbility::OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec)
@@ -86,4 +87,38 @@ FActiveGameplayEffectHandle UGodsentGameplayAbility::NativeApplyEffectSpecHandle
 	return GetGodsentAbilitySystemComponentFromActorInfo()->ApplyGameplayEffectSpecToTarget(
 		*InSpecHandle.Data,
 		TargetASC);
+}
+
+/// Applies an effect spec to every living hostile pawn within Radius of Origin
+int32 UGodsentGameplayAbility::ApplyEffectSpecHandleToHostilesInRadius(const FGameplayEffectSpecHandle& InSpecHandle,
+	FVector Origin, float Radius, bool bCausesHitStun, FGameplayTag RequiredTargetTag, bool bDrawDebug)
+{
+	APawn* OwningPawn = Cast<APawn>(GetAvatarActorFromActorInfo());
+
+	if (!OwningPawn || !InSpecHandle.IsValid() || Radius <= 0.f)
+		return 0;
+
+	if (bCausesHitStun)
+		InSpecHandle.Data->AddDynamicAssetTag(GodsentGameplayTags::Shared_Effect_HitStun);
+
+	TArray<APawn*> HostilePawns;
+	UGodsentFunctionLibrary::GetHostilePawnsInRadius(OwningPawn, Origin, Radius, HostilePawns);
+
+	int32 NumTargetsHit = 0;
+
+	for (APawn* HostilePawn : HostilePawns)
+	{
+		if (RequiredTargetTag.IsValid() && !UGodsentFunctionLibrary::NativeDoesActorHaveTag(HostilePawn, RequiredTargetTag))
+			continue;
+
+		if (NativeApplyEffectSpecHandleToTarget(HostilePawn, InSpecHandle).WasSuccessfullyApplied())
+			++NumTargetsHit;
+	}
+
+#if ENABLE_DRAW_DEBUG
+	if (bDrawDebug)
+		DrawDebugSphere(OwningPawn->GetWorld(), Origin, Radius, 16, NumTargetsHit > 0 ? FColor::Green : FColor::Red, false, 1.f);
+#endif
+
+	return NumTargetsHit;
 }

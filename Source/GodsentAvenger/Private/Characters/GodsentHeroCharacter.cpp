@@ -4,6 +4,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/PointLightComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GodsentFunctionLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -44,6 +45,13 @@ AGodsentHeroCharacter::AGodsentHeroCharacter()
 
 	HeroCombatComponent = CreateDefaultSubobject<UHeroCombatComponent>(TEXT("HeroCombatComponent"));
 	HeroUIComponent = CreateDefaultSubobject<UHeroUIComponent>(TEXT("HeroUIComponent"));
+
+	// Hidden until the Light skill is unlocked; the light ability sets its radius per tier
+	LightAuraComponent = CreateDefaultSubobject<UPointLightComponent>(TEXT("LightAuraComponent"));
+	LightAuraComponent->SetupAttachment(GetRootComponent());
+	LightAuraComponent->SetRelativeLocation(FVector(0.f, 0.f, 80.f));
+	LightAuraComponent->SetCastShadows(false);
+	LightAuraComponent->SetVisibility(false);
 }
 
 UPawnCombatComponent* AGodsentHeroCharacter::GetPawnCombatComponent() const

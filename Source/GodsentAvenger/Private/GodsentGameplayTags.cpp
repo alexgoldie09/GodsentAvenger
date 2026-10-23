@@ -18,6 +18,7 @@ namespace GodsentGameplayTags
 
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_Toggleable, "InputTag.Toggleable");
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_Toggleable_TargetLock, "InputTag.Toggleable.TargetLock");
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_Toggleable_Light, "InputTag.Toggleable.Light");
 
 	/** Player Weapon Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Player_Weapon_Sword, "Player.Weapon.Sword");
@@ -30,6 +31,8 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchTarget_Left, "Player.Event.SwitchTarget.Left");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_SwitchTarget_Right, "Player.Event.SwitchTarget.Right");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Dodge_Takeoff, "Player.Event.Dodge.Takeoff");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Heal_Release, "Player.Event.Heal.Release");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Heal_HoldPoint, "Player.Event.Heal.HoldPoint");
 
 	/** Player Ability Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Equip_Sword, "Player.Ability.Equip.Sword");
@@ -39,6 +42,7 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Block, "Player.Ability.Block");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Sprint, "Player.Ability.Sprint");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Heal, "Player.Ability.Heal");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Light, "Player.Ability.Light");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_TargetLock, "Player.Ability.TargetLock");
 
 	/** Player Cooldown Tags **/
@@ -53,6 +57,9 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_TargetLock, "Player.Status.TargetLock");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_StaminaRegenBlocked, "Player.Status.StaminaRegenBlocked");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_MovementLocked, "Player.Status.MovementLocked");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Casting, "Player.Status.Casting");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_RiposteWindow, "Player.Status.RiposteWindow");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_LightActive, "Player.Status.LightActive");
 
 	/** Player Set By Caller Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Player_SetByCaller_AttackType_Light, "Player.SetByCaller.AttackType.Light");
@@ -86,6 +93,7 @@ namespace GodsentGameplayTags
 	
 	/** Shared Effect Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Effect_HitStun, "Shared.Effect.HitStun");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_Effect_IgnoreDefense, "Shared.Effect.IgnoreDefense");
 
 	/** Shared Ability Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Ability_HitReact, "Shared.Ability.HitReact");

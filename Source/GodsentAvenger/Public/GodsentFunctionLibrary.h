@@ -73,6 +73,15 @@ public:
 	/// Returns true when the hit should deal no damage (FullBlocked or Parried).
 	static bool NativeHandleBlockResult(AActor* InAttacker, AActor* InDefender, EGodsentBlockResult BlockResult);
 
+	/// Finds every living, non-invincible hostile pawn (with an ability system) within Radius of Origin,
+	/// judged by QueryPawn's team. Used by area skills (heal release, light aura) and later enemy AOEs.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|FunctionLibrary")
+	static void GetHostilePawnsInRadius(APawn* QueryPawn, FVector Origin, float Radius, TArray<APawn*>& OutHostilePawns);
+
+	/// Snaps ActorToRotate (yaw only) to face TargetActor. Does nothing if either is missing or they overlap.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|FunctionLibrary")
+	static void RotateActorToFaceTarget(AActor* ActorToRotate, AActor* TargetActor);
+
 	/// Applies a gameplay effect spec to a target actor using the instigator's ASC
 	UFUNCTION(BlueprintCallable, Category = "Godsent|FunctionLibrary")
 	static bool ApplyGameplayEffectSpecHandleToTargetActor(AActor* InInstigator, AActor* InTargetActor, const FGameplayEffectSpecHandle& InGameplayEffectSpecHandle);
