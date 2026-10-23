@@ -82,6 +82,10 @@ private:
 
 	FVector2D SwitchDirection = FVector2D::ZeroVector;
 
+	/// How far the stick (or mouse) has to flick sideways before it switches lock-on target
+	UPROPERTY(EditDefaultsOnly, Category = "CharacterData|TargetLock", meta = (AllowPrivateAccess = "true"))
+	float SwitchTargetInputThreshold = 0.5f;
+
 	void Input_AbilityInputPressed(FGameplayTag InInputTag);
 	void Input_AbilityInputReleased(FGameplayTag InInputTag);
 #pragma endregion

@@ -8,6 +8,7 @@
 #include "Characters/GodsentHeroCharacter.h"
 #include "Controllers/GodsentHeroController.h"
 #include "Components/Combat/HeroCombatComponent.h"
+#include "GodsentFunctionLibrary.h"
 #include "GodsentGameplayTags.h"
 #include "GameplayEffect.h"
 #include "Components/UI/HeroUIComponent.h"
@@ -98,6 +99,20 @@ float UGodsentHeroGameplayAbility::GetAttackSpeedMontageRate() const
 	const float AttackSpeed = ASC->GetGameplayAttributeValue(UGodsentAttributeSet::GetAttackSpeedAttribute(), bFound);
 
 	return bFound ? FMath::Max(AttackSpeed, 0.1f) : 1.f;
+}
+
+/// Snaps the hero to face the target-locked enemy
+bool UGodsentHeroGameplayAbility::FaceLockedOnTarget()
+{
+	AGodsentHeroCharacter* HeroCharacter = GetHeroCharacterFromActorInfo();
+	const UHeroCombatComponent* HeroCombatComponent = GetHeroCombatComponentFromActorInfo();
+	AActor* LockedOnTarget = HeroCombatComponent ? HeroCombatComponent->GetLockedOnTarget() : nullptr;
+
+	if (!HeroCharacter || !LockedOnTarget)
+		return false;
+
+	UGodsentFunctionLibrary::RotateActorToFaceTarget(HeroCharacter, LockedOnTarget);
+	return true;
 }
 
 namespace 

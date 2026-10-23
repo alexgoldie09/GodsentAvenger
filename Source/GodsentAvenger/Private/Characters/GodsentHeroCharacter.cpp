@@ -137,13 +137,19 @@ void AGodsentHeroCharacter::Input_SwitchTargetTriggered(const FInputActionValue&
 	SwitchDirection = InputActionValue.Get<FVector2D>();
 }
 
-/// Sends a SwitchTarget.Left or .Right event to the target lock ability
+/// Sends a SwitchTarget.Left or .Right event to the target lock ability (small flicks are ignored)
 void AGodsentHeroCharacter::Input_SwitchTargetCompleted(const FInputActionValue& InputActionValue)
 {
+	const float SwitchAmount = SwitchDirection.X;
+	SwitchDirection = FVector2D::ZeroVector;
+
+	if (FMath::Abs(SwitchAmount) < SwitchTargetInputThreshold)
+		return;
+
 	FGameplayEventData Data;
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
 		this,
-		SwitchDirection.X > 0.f ? GodsentGameplayTags::Player_Event_SwitchTarget_Right : GodsentGameplayTags::Player_Event_SwitchTarget_Left,
+		SwitchAmount > 0.f ? GodsentGameplayTags::Player_Event_SwitchTarget_Right : GodsentGameplayTags::Player_Event_SwitchTarget_Left,
 		Data);
 }
 

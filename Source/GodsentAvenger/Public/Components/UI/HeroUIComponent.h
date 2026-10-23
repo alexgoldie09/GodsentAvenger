@@ -7,6 +7,8 @@
 #include "Components/UI/PawnUIComponent.h"
 #include "HeroUIComponent.generated.h"
 
+class UMaterialInterface;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnAbilityCooldownBegin, FGameplayTag, AbilityInputTag, float, CooldownDuration, float, TimeRemaining);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAbilityIconSlotUpdatedDelegate, FGameplayTag, AbilityInputTag, TSoftObjectPtr<UMaterialInterface>, SoftWeaponMaterial);

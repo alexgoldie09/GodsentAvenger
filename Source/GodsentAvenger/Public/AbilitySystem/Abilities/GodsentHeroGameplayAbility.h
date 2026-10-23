@@ -45,6 +45,11 @@ public:
 	/// The hero's AttackSpeed attribute, for the Rate pin of Play Montage And Wait (1 = normal speed)
 	UFUNCTION(BlueprintPure, Category = "Godsent|Ability")
 	float GetAttackSpeedMontageRate() const;
+
+	/// Snaps the hero to face the target-locked enemy. Call it at the start of attacks.
+	/// Returns false (and does nothing) when not locked on.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Ability")
+	bool FaceLockedOnTarget();
 	
 	/// Sends this ability's icon, and its cooldown if one is running, to the HUD slot for its input tag.
 	/// Called automatically on grant and on cooldown; the ASC's Broadcast Hero Ability UI calls it for widgets made later.

@@ -44,7 +44,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Godsent|Combat")
 	AActor* GetRiposteTarget() const { return RiposteTarget.Get(); }
 
+	/// Set by the target lock ability while locked on (nullptr when not locked)
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Combat")
+	void SetLockedOnTarget(AActor* InLockedOnTarget) { LockedOnTarget = InLockedOnTarget; }
+
+	/// The enemy currently locked onto, or nullptr when not locked on
+	UFUNCTION(BlueprintPure, Category = "Godsent|Combat")
+	AActor* GetLockedOnTarget() const { return LockedOnTarget.Get(); }
+
 private:
 	/// Weak so a parried enemy that dies or despawns doesn't linger here
 	TWeakObjectPtr<AActor> RiposteTarget;
+
+	/// Weak for the same reason; the target lock ability clears it when the lock ends
+	TWeakObjectPtr<AActor> LockedOnTarget;
 };
