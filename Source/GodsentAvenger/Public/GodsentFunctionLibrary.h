@@ -11,6 +11,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "GodsentFunctionLibrary.generated.h"
 
+class UGodsentGameInstance;
 class UGodsentAbilitySystemComponent;
 class UPawnCombatComponent;
 
@@ -95,4 +96,11 @@ public:
 		EGodsentCountDownActionInput CountDownInput,
 		UPARAM(DisplayName = "Output") EGodsentCountDownActionOutput& CountDownOutput,
 		FLatentActionInfo LatentInfo);
+	
+	UFUNCTION(BlueprintPure, Category = "Godsent|FunctionLibrary", meta = (WorldContext = "WorldContextObject"))
+	static UGodsentGameInstance* GetGodsentGameInstance(const UObject* WorldContextObject);
+	
+	/// Toggles the input mode between GameOnly and UIOnly. Useful for switching between gameplay and UI interaction.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|FunctionLibrary", meta = (WorldContext = "WorldContextObject"))
+	static void ToggleInputMode(const UObject* WorldContextObject, EGodsentInputMode InInputMode);
 };

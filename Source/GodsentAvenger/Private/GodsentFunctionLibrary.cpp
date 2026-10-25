@@ -13,6 +13,7 @@
 #include "GameFramework/Pawn.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "GodsentTypes/GodsentCountDownAction.h"
+#include "GodsentGameInstance.h"
 
 /// Gets the Godsent Ability System Component from an actor (asserts if the actor has none)
 UGodsentAbilitySystemComponent* UGodsentFunctionLibrary::NativeGetGodsentASCFromActor(AActor* InActor)
@@ -276,4 +277,45 @@ void UGodsentFunctionLibrary::CountDown(const UObject* WorldContextObject, float
 
 	if (CountDownInput == EGodsentCountDownActionInput::Cancel && FoundAction)
 		FoundAction->CancelAction();
+}
+
+/// Gets the Godsent Game Instance from a world context object, or nullptr if not found
+UGodsentGameInstance* UGodsentFunctionLibrary::GetGodsentGameInstance(const UObject* WorldContextObject)
+{
+	if (GEngine)
+		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
+			return World->GetGameInstance<UGodsentGameInstance>();
+	
+	return nullptr;
+}
+
+/// Toggles the input mode between GameOnly and UIOnly, showing or hiding the mouse cursor accordingly
+void UGodsentFunctionLibrary::ToggleInputMode(const UObject* WorldContextObject, EGodsentInputMode InInputMode)
+{
+	APlayerController* PlayerController = nullptr;
+	
+	if (GEngine)
+		if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
+			PlayerController = World->GetFirstPlayerController();
+	
+	if (!PlayerController)
+		return;
+	
+	FInputModeGameOnly GameOnlyInputMode;
+	FInputModeUIOnly UIOnlyInputMode;
+	
+	switch (InInputMode) 
+	{
+		case EGodsentInputMode::GameOnly:
+			PlayerController->SetInputMode(GameOnlyInputMode);
+			PlayerController->bShowMouseCursor = false;
+		break;
+		case EGodsentInputMode::UIOnly:
+			PlayerController->SetInputMode(UIOnlyInputMode);
+			PlayerController->bShowMouseCursor = true;
+		break;
+	}
+
+
+
 }

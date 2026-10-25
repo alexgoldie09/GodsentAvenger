@@ -41,8 +41,15 @@ enum class EGodsentCountDownActionOutput : uint8
 /// Outcome of a hit landing on a (possibly) blocking defender
 enum class EGodsentBlockResult : uint8
 {
-	None,		// Not blocked: full damage
-	Blocked,	// Partial block: damage still applies, reduced by the block's DefensePower bonus
-	FullBlocked,	// Full block (Increased Defence skill): no damage
-	Parried		// Hit landed inside the parry window: no damage, attacker staggers
+	None, // Not blocked: full damage
+	Blocked, // Partial block: damage still applies, reduced by the block's DefensePower bonus
+	FullBlocked, // Full block (Increased Defence skill): no damage
+	Parried	// Hit landed inside the parry window: no damage, attacker staggers
+};
+
+UENUM(BlueprintType)
+enum class EGodsentInputMode : uint8
+{
+	GameOnly,
+	UIOnly
 };
