@@ -44,6 +44,7 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Heal, "Player.Ability.Heal");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Light, "Player.Ability.Light");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_TargetLock, "Player.Ability.TargetLock");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_HolyRetribution, "Player.Ability.HolyRetribution");
 
 	/** Player Cooldown Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Player_Cooldown_Heal, "Player.Cooldown.Heal");
@@ -60,6 +61,9 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Casting, "Player.Status.Casting");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_RiposteWindow, "Player.Status.RiposteWindow");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_LightActive, "Player.Status.LightActive");
+
+	/** Player Passive Tags **/
+	UE_DEFINE_GAMEPLAY_TAG(Player_Passive_HitStun, "Player.Passive.HitStun");
 
 	/** Player Set By Caller Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Player_SetByCaller_AttackType_Light, "Player.SetByCaller.AttackType.Light");
@@ -87,6 +91,7 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Event_MeleeHit, "Shared.Event.MeleeHit");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Event_HitReact, "Shared.Event.HitReact");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Event_SpawnProjectile, "Shared.Event.SpawnProjectile");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_Event_DamageTaken, "Shared.Event.DamageTaken");
 
 	/** Shared Set By Caller Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Shared_SetByCaller_BaseDamage, "Shared.SetByCaller.BaseDamage");
@@ -110,4 +115,31 @@ namespace GodsentGameplayTags
 	/** Game Data Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(GameData_Level_GameMap, "GameData.Level.GameMap");
 	UE_DEFINE_GAMEPLAY_TAG(GameData_Level_MainMenuMap, "GameData.Level.MainMenuMap");
+
+	/** Skill Tree Tags **/
+	UE_DEFINE_GAMEPLAY_TAG(Skill, "Skill");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Dexterity_Avoidance_Hop, "Skill.Dexterity.Avoidance.Hop");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Dexterity_Avoidance_Leap, "Skill.Dexterity.Avoidance.Leap");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Dexterity_Avoidance_GracedEvasion, "Skill.Dexterity.Avoidance.GracedEvasion");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Dexterity_WeaponWielding_AttackSpeed, "Skill.Dexterity.WeaponWielding.AttackSpeed");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Dexterity_WeaponWielding_Combo, "Skill.Dexterity.WeaponWielding.Combo");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Dexterity_WeaponWielding_FlurryInHerName, "Skill.Dexterity.WeaponWielding.FlurryInHerName");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Strength_Blocking_Block, "Skill.Strength.Blocking.Block");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Strength_Blocking_Parry, "Skill.Strength.Blocking.Parry");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Strength_Blocking_HallowedRiposte, "Skill.Strength.Blocking.HallowedRiposte");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Strength_WeaponWielding_AttackDamage, "Skill.Strength.WeaponWielding.AttackDamage");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Strength_WeaponWielding_HitStun, "Skill.Strength.WeaponWielding.HitStun");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Strength_WeaponWielding_ChasteCleave, "Skill.Strength.WeaponWielding.ChasteCleave");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Constitution_Stamina_IncreasedStamina, "Skill.Constitution.Stamina.IncreasedStamina");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Constitution_Stamina_Sprint, "Skill.Constitution.Stamina.Sprint");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Constitution_Stamina_ImmortalVigor, "Skill.Constitution.Stamina.ImmortalVigor");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Constitution_Survival_IncreasedDefence, "Skill.Constitution.Survival.IncreasedDefence");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Constitution_Survival_HolyRetribution, "Skill.Constitution.Survival.HolyRetribution");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Constitution_Survival_SaintlyRevival, "Skill.Constitution.Survival.SaintlyRevival");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Fervour_Light_Light, "Skill.Fervour.Light.Light");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Fervour_Light_GreaterLight, "Skill.Fervour.Light.GreaterLight");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Fervour_Light_BlestRadiance, "Skill.Fervour.Light.BlestRadiance");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Fervour_Healing_Heal, "Skill.Fervour.Healing.Heal");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Fervour_Healing_GreaterHeal, "Skill.Fervour.Healing.GreaterHeal");
+	UE_DEFINE_GAMEPLAY_TAG(Skill_Fervour_Healing_HeavenlyLife, "Skill.Fervour.Healing.HeavenlyLife");
 }

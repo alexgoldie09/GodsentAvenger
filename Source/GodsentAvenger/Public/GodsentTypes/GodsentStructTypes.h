@@ -8,7 +8,9 @@
 #include "Templates/SubclassOf.h"
 #include "GodsentStructTypes.generated.h"
 
+class UGameplayEffect;
 class UGodsentHeroGameplayAbility;
+class UTexture2D;
 class UGodsentHeroLinkedAnimLayer;
 class UInputMappingContext;
 
@@ -53,4 +55,51 @@ struct FGodsentHeroWeaponData
 	/// Base damage per level, read by the light attack and scaled by the damage calculation
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FScalableFloat WeaponBaseDamage;
+};
+
+/// One skill in the skill tree. Tiers chain through Prerequisites (Leap needs Hop, Graced Evasion needs Leap...).
+/// Unlocking applies Ability and/or Passive Effect; a node with neither shows as Unavailable (not built yet).
+USTRUCT(BlueprintType)
+struct FGodsentSkillNode
+{
+	GENERATED_BODY()
+
+	/// The skill's identity; skill buttons use the same tag
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (Categories = "Skill"))
+	FGameplayTag SkillTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FText DisplayName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (MultiLine = "true"))
+	FText Description;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSoftObjectPtr<UTexture2D> Icon;
+
+	/// Skill points needed to unlock
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (ClampMin = "0"))
+	int32 Cost = 1;
+
+	/// Skills that must already be unlocked (normally just the previous tier; two for the stretch-goal combo skills)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (Categories = "Skill"))
+	FGameplayTagContainer Prerequisites;
+
+	/// Ability granted when unlocked, or raised to Ability Level if the hero already has it
+	/// (Hop = Dodge 1, Leap = Dodge 2...). Fill the Input Tag on every tier; leave it empty for event-triggered passives.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FGodsentHeroAbilitySet Ability;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (ClampMin = "1"))
+	int32 AbilityLevel = 1;
+
+	/// Infinite effect applied when unlocked (stat boosts, passive tags)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<UGameplayEffect> PassiveEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (ClampMin = "1"))
+	int32 PassiveEffectLevel = 1;
+
+	/// False for skills that aren't built yet (no ability and no passive)
+	bool IsImplemented() const;
 };

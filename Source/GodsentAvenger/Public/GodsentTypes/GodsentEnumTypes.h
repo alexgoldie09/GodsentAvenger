@@ -53,3 +53,14 @@ enum class EGodsentInputMode : uint8
 	GameOnly,
 	UIOnly
 };
+
+/// Where a skill stands for the current heir (drives the skill tree buttons)
+UENUM(BlueprintType)
+enum class EGodsentSkillState : uint8
+{
+	Unlocked,		// Already owned
+	Available,		// Prerequisites owned and enough skill points: can be bought
+	CantAfford,		// Prerequisites owned but not enough skill points
+	Locked,			// A prerequisite (the previous tier) isn't owned yet
+	Unavailable		// Not in the skill tree data, or not built yet (grants nothing)
+};

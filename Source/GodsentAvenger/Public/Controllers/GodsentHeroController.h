@@ -8,6 +8,8 @@
 #include "GodsentTypes/GodsentStructTypes.h"
 #include "GodsentHeroController.generated.h"
 
+class USkillTreeComponent;
+
 /**
  * The player's controller. Team 0, so enemies (team 1) treat the hero as hostile.
  */
@@ -22,6 +24,18 @@ public:
 	//~ Begin IGenericTeamAgentInterface Interface.
 	virtual FGenericTeamId GetGenericTeamId() const override;
 	//~ End IGenericTeamAgentInterface Interface.
+
+	/// Skill points and unlocked skills (lives here so it outlasts each heir)
+	UFUNCTION(BlueprintPure, Category = "Godsent|SkillTree")
+	USkillTreeComponent* GetSkillTreeComponent() const { return SkillTreeComponent; }
+
+	/// Debug: adds skill points, e.g. "GodsentGrantSkillPoints 24"
+	UFUNCTION(Exec)
+	void GodsentGrantSkillPoints(int32 Amount);
+
+	/// Debug: unlocks a skill and its earlier tiers for free, e.g. "GodsentUnlockSkill Skill.Dexterity.Avoidance.GracedEvasion"
+	UFUNCTION(Exec)
+	void GodsentUnlockSkill(FName SkillTagName);
 
 	/// Console command for testing skill tiers until the skill tree exists, e.g.
 	/// "GodsentSetAbilityLevel Player.Ability.Dodge 3" (Graced Evasion) or "GodsentSetAbilityLevel Player.Ability.Attack.Light 2" (Combo)
@@ -38,6 +52,14 @@ public:
 	void GodsentRemoveAbility(FName AbilityTagName);
 
 protected:
+	//~ Begin AController Interface.
+	/// Re-applies the lineage's unlocked skills to every newly possessed heir
+	virtual void OnPossess(APawn* InPawn) override;
+	//~ End AController Interface.
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SkillTree")
+	TObjectPtr<USkillTreeComponent> SkillTreeComponent;
+
 	/// Abilities the debug commands can grant. Leave Input Tag empty for passive/OnGiven ones (e.g. Light)
 	UPROPERTY(EditDefaultsOnly, Category = "Debug", meta = (TitleProperty = "AbilityToGrant"))
 	TArray<FGodsentHeroAbilitySet> DebugGrantableAbilities;

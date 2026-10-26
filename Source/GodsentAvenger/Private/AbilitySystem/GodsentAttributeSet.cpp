@@ -140,6 +140,14 @@ void UGodsentAttributeSet::HandleDamageReactions(const FGameplayEffectModCallbac
 	if (AGodsentBaseCharacter* TargetCharacter = Cast<AGodsentBaseCharacter>(TargetActor))
 		TargetCharacter->BP_OnDamageTaken(DamageDone, InstigatorActor);
 
+	// Lets passive abilities react to being hit (Holy Retribution's thorns); EventMagnitude is the damage taken
+	FGameplayEventData DamageTakenEventData;
+	DamageTakenEventData.Instigator = InstigatorActor;
+	DamageTakenEventData.Target = TargetActor;
+	DamageTakenEventData.EventMagnitude = DamageDone;
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, GodsentGameplayTags::Shared_Event_DamageTaken, DamageTakenEventData);
+
 	// A killing blow plays the death ability instead
 	if (GetCurrentHealth() <= 0.f)
 		return;

@@ -5,10 +5,41 @@
 #include "GameplayTagContainer.h"
 #include "AbilitySystem/Abilities/GodsentHeroGameplayAbility.h"
 #include "AbilitySystem/GodsentAbilitySystemComponent.h"
+#include "Components/SkillTree/SkillTreeComponent.h"
 
 AGodsentHeroController::AGodsentHeroController()
 {
 	HeroTeamId = FGenericTeamId(0);
+
+	SkillTreeComponent = CreateDefaultSubobject<USkillTreeComponent>(TEXT("SkillTreeComponent"));
+}
+
+/// Possesses the heir (its startup data is granted inside Super), then re-applies the lineage's skills on top
+void AGodsentHeroController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+
+	if (SkillTreeComponent)
+		SkillTreeComponent->ApplyAllUnlockedSkills();
+}
+
+/// Debug: adds skill points
+void AGodsentHeroController::GodsentGrantSkillPoints(int32 Amount)
+{
+	if (SkillTreeComponent)
+		SkillTreeComponent->AddSkillPoints(Amount);
+
+	UE_LOG(LogTemp, Warning, TEXT("GodsentGrantSkillPoints: now %d"), SkillTreeComponent ? SkillTreeComponent->GetSkillPoints() : 0);
+}
+
+/// Debug: unlocks a skill and its earlier tiers for free
+void AGodsentHeroController::GodsentUnlockSkill(FName SkillTagName)
+{
+	const FGameplayTag SkillTag = FGameplayTag::RequestGameplayTag(SkillTagName, false);
+	const bool bUnlocked = SkillTag.IsValid() && SkillTreeComponent && SkillTreeComponent->ForceUnlockSkill(SkillTag);
+
+	UE_LOG(LogTemp, Warning, TEXT("GodsentUnlockSkill: %s %s"), *SkillTagName.ToString(),
+		bUnlocked ? TEXT("unlocked") : TEXT("not found, not built yet, or no skill tree data"));
 }
 
 FGenericTeamId AGodsentHeroController::GetGenericTeamId() const
