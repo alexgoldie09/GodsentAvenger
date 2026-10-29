@@ -101,6 +101,7 @@ namespace GodsentGameplayTags
 	/** Shared Effect Tags **/
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Shared_Effect_HitStun);
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Shared_Effect_IgnoreDefense);
+	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Shared_Effect_Melee);
 
 	/** Shared Ability Tags **/
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Shared_Ability_HitReact);

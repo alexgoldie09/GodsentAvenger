@@ -99,6 +99,7 @@ namespace GodsentGameplayTags
 	/** Shared Effect Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Effect_HitStun, "Shared.Effect.HitStun");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Effect_IgnoreDefense, "Shared.Effect.IgnoreDefense");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_Effect_Melee, "Shared.Effect.Melee");
 
 	/** Shared Ability Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Ability_HitReact, "Shared.Ability.HitReact");

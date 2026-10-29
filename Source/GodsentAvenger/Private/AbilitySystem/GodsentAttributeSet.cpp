@@ -145,6 +145,7 @@ void UGodsentAttributeSet::HandleDamageReactions(const FGameplayEffectModCallbac
 	DamageTakenEventData.Instigator = InstigatorActor;
 	DamageTakenEventData.Target = TargetActor;
 	DamageTakenEventData.EventMagnitude = DamageDone;
+	DamageTakenEventData.InstigatorTags = SpecAssetTags;   // the damage effect's asset tags (e.g. Shared.Effect.Melee)
 
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, GodsentGameplayTags::Shared_Event_DamageTaken, DamageTakenEventData);
 
