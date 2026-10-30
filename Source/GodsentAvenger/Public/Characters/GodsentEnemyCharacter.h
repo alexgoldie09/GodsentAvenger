@@ -35,6 +35,9 @@ public:
 	FORCEINLINE UBoxComponent* GetLeftHandCollisionBox() const { return LeftHandCollisionBox; }
 	FORCEINLINE UBoxComponent* GetRightHandCollisionBox() const { return RightHandCollisionBox; }
 
+	UFUNCTION(BlueprintPure, Category = "Godsent|AI")
+	float GetPatrolRadius() const { return PatrolRadius; }
+
 protected:
 	/// Hooks the health bar widget up to this enemy's UI component
 	virtual void BeginPlay() override;
@@ -64,6 +67,11 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	FName RightHandCollisionBoxBoneName;
+
+	/// How far from its home (where it was placed) this enemy wanders while patrolling.
+	/// Set a default in the Blueprint and override it per placed enemy in the level.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI", meta = (ClampMin = "0.0", Units = "cm"))
+	float PatrolRadius = 800.f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 	TObjectPtr<UEnemyUIComponent> EnemyUIComponent;

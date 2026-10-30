@@ -70,6 +70,8 @@ namespace GodsentGameplayTags
 
 	/** Enemy Ability Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Melee, "Enemy.Ability.Melee");
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Melee_Light, "Enemy.Ability.Melee.Light");   // quick, blockable (zombie Swing, wolf bite)
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Melee_Heavy, "Enemy.Ability.Melee.Heavy");   // slow, heavy, usually unblockable (zombie Slam)
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Ranged, "Enemy.Ability.Ranged");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_SummonEnemies, "Enemy.Ability.SummonEnemies");
 

@@ -31,6 +31,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Godsent|Ability")
 	FGameplayEffectSpecHandle CreateEnemyDamageEffectSpecHandle(TSubclassOf<UGameplayEffect> EffectClass, const FScalableFloat& InDamageScalableFloat);
 
+	/// The enemy's AttackSpeed attribute, for the Rate pin of Play Montage And Wait (1 = normal, 0.8 = 20% slower).
+	/// Set per enemy type through its start-up stats effect (e.g. a slow zombie).
+	UFUNCTION(BlueprintPure, Category = "Godsent|Ability")
+	float GetAttackSpeedMontageRate() const;
+
 private:
 	TWeakObjectPtr<AGodsentEnemyCharacter> CachedGodsentEnemyCharacter;
 };
