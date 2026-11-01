@@ -74,6 +74,14 @@ public:
 	/// Returns true when the hit should deal no damage (FullBlocked or Parried).
 	static bool NativeHandleBlockResult(AActor* InAttacker, AActor* InDefender, EGodsentBlockResult BlockResult);
 
+	/// A hit that got past the guard (from behind, side-on or unblockable) while the defender was blocking:
+	/// cancels the block so its defence bonus drops. Returns true if a guard was broken
+	/// (the caller sends a stagger after its damage lands, see NativeSendGuardBreakStagger).
+	static bool NativeBreakGuardIfBlocking(AActor* InDefender, EGodsentBlockResult BlockResult);
+
+	/// Staggers a defender whose guard was just broken, unless the hit killed them
+	static void NativeSendGuardBreakStagger(AActor* InAttacker, AActor* InDefender);
+
 	/// Finds every living, non-invincible hostile pawn (with an ability system) within Radius of Origin,
 	/// judged by QueryPawn's team. Used by area skills (heal release, light aura) and later enemy AOEs.
 	UFUNCTION(BlueprintCallable, Category = "Godsent|FunctionLibrary")

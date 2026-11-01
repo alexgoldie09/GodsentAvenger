@@ -64,3 +64,13 @@ enum class EGodsentSkillState : uint8
 	Locked,			// A prerequisite (the previous tier) isn't owned yet
 	Unavailable		// Not in the skill tree data, or not built yet (grants nothing)
 };
+
+/// What a projectile hit when it ended (for its impact effects)
+UENUM(BlueprintType)
+enum class EGodsentProjectileImpact : uint8
+{
+	World,		// Hit a wall or the floor
+	Pawn,		// Hit and damaged a hostile pawn (including through a partial block)
+	Blocked,	// Stopped by a full block or a parry
+	Fizzled		// Ran out of time, or its caster died
+};

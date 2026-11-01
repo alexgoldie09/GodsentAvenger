@@ -74,6 +74,7 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Melee_Heavy, "Enemy.Ability.Melee.Heavy");   // slow, heavy, usually unblockable (zombie Slam)
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Ranged, "Enemy.Ability.Ranged");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_SummonEnemies, "Enemy.Ability.SummonEnemies");
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Wail, "Enemy.Ability.Wail");   // ghost's always-on pulse aura
 
 	/** Enemy Weapon Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Weapon, "Enemy.Weapon");
@@ -85,6 +86,8 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Strafing, "Enemy.Status.Strafing");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_UnderAttack, "Enemy.Status.UnderAttack");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Unblockable, "Enemy.Status.Unblockable");
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Casting, "Enemy.Status.Casting");     // casting a spell (ghost Mindfire); Wail pauses while it's present
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Revealed, "Enemy.Status.Revealed");   // fully visible (ghost in combat); drives the Reveal material parameter
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Charging, "Enemy.Status.Charging");   // running in for a heavy attack (zombie SlamRun); gates a speed effect
 
 	/** Enemy Event Tags **/

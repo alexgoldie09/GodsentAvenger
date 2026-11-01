@@ -124,6 +124,39 @@ FGameplayTag UGodsentFunctionLibrary::ComputeHitReactDirectionTag(AActor* InAtta
 }
 
 /// Checks whether the attacker is in front of the defender closely enough for a block to count
+/// Cancels the defender's block when a hit got past the guard; true if a guard was broken
+bool UGodsentFunctionLibrary::NativeBreakGuardIfBlocking(AActor* InDefender, EGodsentBlockResult BlockResult)
+{
+	if (!InDefender || BlockResult != EGodsentBlockResult::None)
+		return false;
+
+	if (!NativeDoesActorHaveTag(InDefender, GodsentGameplayTags::Player_Status_Blocking))
+		return false;
+
+	UAbilitySystemComponent* DefenderASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InDefender);
+
+	if (!DefenderASC)
+		return false;
+
+	const FGameplayTagContainer BlockAbilityTags(GodsentGameplayTags::Player_Ability_Block);
+	DefenderASC->CancelAbilities(&BlockAbilityTags);
+
+	return true;
+}
+
+/// Staggers a defender whose guard was just broken, unless the hit killed them
+void UGodsentFunctionLibrary::NativeSendGuardBreakStagger(AActor* InAttacker, AActor* InDefender)
+{
+	if (!InDefender || NativeDoesActorHaveTag(InDefender, GodsentGameplayTags::Shared_Status_Dead))
+		return;
+
+	FGameplayEventData StaggerData;
+	StaggerData.Instigator = InAttacker;
+	StaggerData.Target = InDefender;
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(InDefender, GodsentGameplayTags::Shared_Event_HitReact, StaggerData);
+}
+
 bool UGodsentFunctionLibrary::IsValidBlock(AActor* InAttacker, AActor* InDefender, float Threshold)
 {
 	check(InAttacker && InDefender);

@@ -58,6 +58,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Godsent|AI")
 	void ClearTargetActor();
 
+	/// True if sight currently reports the actor (in the cone, in range, line of sight)
+	UFUNCTION(BlueprintPure, Category = "Godsent|AI")
+	bool IsActorCurrentlySeen(AActor* Actor) const;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -117,9 +121,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Detour Crowd Avoidance Config", meta = (EditCondition = "bEnableDetourCrowdAvoidance"))
 	float CollisionQueryRange = 600.f;
-
-	/// True if sight currently reports the actor
-	bool IsActorCurrentlySeen(AActor* Actor) const;
 
 	bool IsValidTargetCandidate(const AActor* Actor) const;
 

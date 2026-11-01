@@ -31,18 +31,7 @@ void UEnemyCombatComponent::OnHitTargetActor(AActor* HitActor)
 
 	// Hit landed outside the guard (from behind, side-on or unblockable) while blocking: break the guard
 	// so the block defence bonus drops and the hit react is free to play
-	bool bGuardBroken = false;
-
-	if (BlockResult == EGodsentBlockResult::None &&
-		UGodsentFunctionLibrary::NativeDoesActorHaveTag(HitActor, GodsentGameplayTags::Player_Status_Blocking))
-	{
-		if (UAbilitySystemComponent* HitASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActor))
-		{
-			const FGameplayTagContainer BlockAbilityTags(GodsentGameplayTags::Player_Ability_Block);
-			HitASC->CancelAbilities(&BlockAbilityTags);
-			bGuardBroken = true;
-		}
-	}
+	const bool bGuardBroken = UGodsentFunctionLibrary::NativeBreakGuardIfBlocking(HitActor, BlockResult);
 
 	FGameplayEventData EventData;
 	EventData.Instigator = GetOwningPawn();
@@ -55,14 +44,8 @@ void UEnemyCombatComponent::OnHitTargetActor(AActor* HitActor)
 
 	// A broken guard always staggers, even when this attack doesn't carry hit stun
 	// (sent after MeleeHit so the damage lands first, and skipped if that damage killed the target)
-	if (bGuardBroken && !UGodsentFunctionLibrary::NativeDoesActorHaveTag(HitActor, GodsentGameplayTags::Shared_Status_Dead))
-	{
-		FGameplayEventData StaggerData;
-		StaggerData.Instigator = GetOwningPawn();
-		StaggerData.Target = HitActor;
-
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, GodsentGameplayTags::Shared_Event_HitReact, StaggerData);
-	}
+	if (bGuardBroken)
+		UGodsentFunctionLibrary::NativeSendGuardBreakStagger(GetOwningPawn(), HitActor);
 }
 
 /// Turns the left or right hand collision box on or off
