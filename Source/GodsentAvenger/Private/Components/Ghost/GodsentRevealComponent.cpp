@@ -105,12 +105,16 @@ void UGodsentRevealComponent::ApplyRevealAlpha()
 	if (!Owner)
 		return;
 
-	// Every mesh (skull, weapon...): creates dynamic material instances on first use, shared with the dissolve
+	// The owner's own meshes (the skull). Creates dynamic material instances on first use, shared with the dissolve.
+	// Widget components are mesh components too (the health bar), so they're skipped.
 	TArray<UMeshComponent*> MeshComponents;
 	Owner->GetComponents<UMeshComponent>(MeshComponents);
 
 	for (UMeshComponent* MeshComponent : MeshComponents)
-		MeshComponent->SetScalarParameterValueOnMaterials(MaterialParameterName, CurrentRevealAlpha);
+	{
+		if (!MeshComponent->IsA<UWidgetComponent>())
+			MeshComponent->SetScalarParameterValueOnMaterials(MaterialParameterName, CurrentRevealAlpha);
+	}
 
 	TArray<UNiagaraComponent*> NiagaraComponents;
 	Owner->GetComponents<UNiagaraComponent>(NiagaraComponents);
