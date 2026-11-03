@@ -117,6 +117,6 @@ void AGodsentEnemyCharacter::InitEnemyStartupData()
 		FStreamableDelegate::CreateWeakLambda(this, [this]()
 		{
 			if (UDataAsset_StartUpDataBase* LoadedData = CharacterStartUpData.Get())
-				LoadedData->GiveToAbilitySystemComponent(GodsentAbilitySystemComponent);
+				LoadedData->GiveToAbilitySystemComponent(GodsentAbilitySystemComponent, EnemyLevel);
 		}));
 }

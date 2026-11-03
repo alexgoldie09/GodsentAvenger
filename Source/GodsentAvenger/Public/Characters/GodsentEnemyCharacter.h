@@ -38,6 +38,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Godsent|AI")
 	float GetPatrolRadius() const { return PatrolRadius; }
 
+	/// Overrides the patrol radius (the spawner calls this before the enemy finishes spawning)
+	void SetPatrolRadius(float NewPatrolRadius) { PatrolRadius = FMath::Max(NewPatrolRadius, 0.f); }
+
+	UFUNCTION(BlueprintPure, Category = "Godsent|Stats")
+	int32 GetEnemyLevel() const { return EnemyLevel; }
+
+	/// Sets the level its start-up data is applied at. Only takes effect before the enemy is possessed
+	/// (the spawner calls this between spawning and finishing the spawn).
+	void SetEnemyLevel(int32 NewEnemyLevel) { EnemyLevel = FMath::Max(NewEnemyLevel, 1); }
+
 protected:
 	/// Hooks the health bar widget up to this enemy's UI component
 	virtual void BeginPlay() override;
@@ -72,6 +82,11 @@ protected:
 	/// Set a default in the Blueprint and override it per placed enemy in the level.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI", meta = (ClampMin = "0.0", Units = "cm"))
 	float PatrolRadius = 800.f;
+
+	/// Level the start-up stats effect and abilities are applied at (curve table rows are read at this level).
+	/// Spawners set it per run; for placed enemies set it on the instance.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "1"))
+	int32 EnemyLevel = 1;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 	TObjectPtr<UEnemyUIComponent> EnemyUIComponent;
