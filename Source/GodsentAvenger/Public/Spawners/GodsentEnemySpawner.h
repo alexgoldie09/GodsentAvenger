@@ -141,9 +141,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner|Enemies", meta = (ClampMin = "0"))
 	int32 MaxSpawnCount = 4;
 
-	/// Level its enemies are spawned at. The rebirth loop sets this through Reset All Spawners.
+	/// Base level its enemies are spawned at. The lineage's enemy tier is added on top
+	/// (applied level = Enemy Level + tier - 1) unless Scale With Lineage Tier is off.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner|Enemies", meta = (ClampMin = "1"))
 	int32 EnemyLevel = 1;
+
+	/// Off: this spawner's enemies always use Enemy Level as it is, whatever the generation
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner|Enemies")
+	bool bScaleWithLineageTier = true;
 
 	/// On: every enemy from this spawner patrols Patrol Radius Override instead of its own Patrol Radius
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner|Enemies")

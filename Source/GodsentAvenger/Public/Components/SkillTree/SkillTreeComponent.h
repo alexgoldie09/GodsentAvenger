@@ -39,7 +39,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Godsent|SkillTree")
 	int32 GetSkillPoints() const { return SkillPoints; }
 
-	/// Adds (or with a negative amount removes) skill points. Rebirth will call this with 1.
+	/// Adds (or with a negative amount removes) skill points, and writes them back to the lineage
 	UFUNCTION(BlueprintCallable, Category = "Godsent|SkillTree")
 	void AddSkillPoints(int32 Amount);
 
@@ -67,16 +67,28 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Godsent|SkillTree")
 	FGameplayTagContainer GetUnlockedSkills() const { return UnlockedSkills; }
 
+	// ---- Lineage ----
+	// The lineage subsystem owns the progress. This component only works on the current heir's copy:
+	// loaded from the lineage on possess, written straight back on every change.
+
+	/// Replaces the points and unlocked skills (doesn't re-apply them; the controller calls Apply All Unlocked Skills after)
+	void ImportProgress(int32 InSkillPoints, const FGameplayTagContainer& InUnlockedSkills);
+
+	/// Copies out the points and unlocked skills
+	void ExportProgress(int32& OutSkillPoints, FGameplayTagContainer& OutUnlockedSkills) const;
+
+	/// Imports from the lineage subsystem. The controller calls this on possess (and after a death updates the lineage).
+	void LoadFromLineage();
+
+	/// Exports to the lineage subsystem
+	void SaveToLineage() const;
+
 protected:
 	virtual void BeginPlay() override;
 
 	/// The skill tree data asset (DA_SkillTree)
 	UPROPERTY(EditDefaultsOnly, Category = "SkillTree")
 	TObjectPtr<UDataAsset_SkillTree> SkillTreeData;
-
-	/// Points the first heir starts with (0 in the real game; the cheat command adds more)
-	UPROPERTY(EditDefaultsOnly, Category = "SkillTree", meta = (ClampMin = "0"))
-	int32 StartingSkillPoints = 0;
 
 private:
 	/// Grants or levels the ability and applies the passive effect of one skill

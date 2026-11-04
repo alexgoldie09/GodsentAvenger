@@ -8,6 +8,7 @@
 #include "DataAssets/SkillTree/DataAsset_SkillTree.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/Pawn.h"
+#include "Subsystems/GodsentLineageSubsystem.h"
 
 USkillTreeComponent::USkillTreeComponent()
 {
@@ -18,15 +19,52 @@ void USkillTreeComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SkillPoints = StartingSkillPoints;
-	OnSkillPointsChanged.Broadcast(SkillPoints);
+	// Usually already loaded on possess; loading again here makes sure widgets built at BeginPlay see the right count
+	LoadFromLineage();
 }
 
-/// Adds (or removes) skill points
+/// Adds (or removes) skill points, and writes them back to the lineage
 void USkillTreeComponent::AddSkillPoints(int32 Amount)
 {
 	SkillPoints = FMath::Max(SkillPoints + Amount, 0);
 	OnSkillPointsChanged.Broadcast(SkillPoints);
+
+	SaveToLineage();
+}
+
+void USkillTreeComponent::ImportProgress(int32 InSkillPoints, const FGameplayTagContainer& InUnlockedSkills)
+{
+	SkillPoints = FMath::Max(InSkillPoints, 0);
+	UnlockedSkills = InUnlockedSkills;
+
+	OnSkillPointsChanged.Broadcast(SkillPoints);
+}
+
+void USkillTreeComponent::ExportProgress(int32& OutSkillPoints, FGameplayTagContainer& OutUnlockedSkills) const
+{
+	OutSkillPoints = SkillPoints;
+	OutUnlockedSkills = UnlockedSkills;
+}
+
+void USkillTreeComponent::LoadFromLineage()
+{
+	if (const UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
+	{
+		const FGodsentLineageData LineageData = Lineage->GetLineageData();
+		ImportProgress(LineageData.SkillPoints, LineageData.UnlockedSkills);
+	}
+}
+
+void USkillTreeComponent::SaveToLineage() const
+{
+	if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
+	{
+		int32 ExportedPoints = 0;
+		FGameplayTagContainer ExportedSkills;
+		ExportProgress(ExportedPoints, ExportedSkills);
+
+		Lineage->SetSkillProgress(ExportedPoints, ExportedSkills);
+	}
 }
 
 bool USkillTreeComponent::IsSkillUnlocked(FGameplayTag SkillTag) const
@@ -79,6 +117,13 @@ bool USkillTreeComponent::TryUnlockSkill(FGameplayTag SkillTag)
 	OnSkillPointsChanged.Broadcast(SkillPoints);
 
 	CompleteUnlock(*SkillNode);
+
+	// Buying a skill is a save point
+	SaveToLineage();
+
+	if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
+		Lineage->CommitProgress();
+
 	return true;
 }
 
@@ -101,6 +146,7 @@ bool USkillTreeComponent::ForceUnlockSkill(const FGameplayTag& SkillTag)
 
 	UnlockedSkills.RemoveTag(SkillTag);
 	CompleteUnlock(*SkillNode);
+	SaveToLineage();
 	return true;
 }
 

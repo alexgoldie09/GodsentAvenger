@@ -11,6 +11,7 @@
 #include "Components/UI/EnemyUIComponent.h"
 #include "DataAssets/StartUpData/DataAsset_StartUpDataBase.h"
 #include "Widgets/GodsentWidgetBase.h"
+#include "Subsystems/GodsentLineageSubsystem.h"
 
 AGodsentEnemyCharacter::AGodsentEnemyCharacter()
 {
@@ -112,11 +113,20 @@ void AGodsentEnemyCharacter::InitEnemyStartupData()
 	if (CharacterStartUpData.IsNull())
 		return;
 
+	// Base level, raised by the lineage tier (every 5 generations) unless this enemy opts out
+	AppliedEnemyLevel = EnemyLevel;
+
+	if (bScaleWithLineageTier)
+	{
+		if (const UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
+			AppliedEnemyLevel += Lineage->GetEnemyTier() - 1;
+	}
+
 	UAssetManager::GetStreamableManager().RequestAsyncLoad(
 		CharacterStartUpData.ToSoftObjectPath(),
 		FStreamableDelegate::CreateWeakLambda(this, [this]()
 		{
 			if (UDataAsset_StartUpDataBase* LoadedData = CharacterStartUpData.Get())
-				LoadedData->GiveToAbilitySystemComponent(GodsentAbilitySystemComponent, EnemyLevel);
+				LoadedData->GiveToAbilitySystemComponent(GodsentAbilitySystemComponent, AppliedEnemyLevel);
 		}));
 }

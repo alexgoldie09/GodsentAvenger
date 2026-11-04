@@ -106,7 +106,8 @@ void AGodsentHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 /// Moves relative to the camera's yaw (ignored while an ability has locked movement)
 void AGodsentHeroCharacter::Input_Move(const FInputActionValue& InputActionValue)
 {
-	if (UGodsentFunctionLibrary::NativeDoesActorHaveTag(this, GodsentGameplayTags::Player_Status_MovementLocked))
+	if (UGodsentFunctionLibrary::NativeDoesActorHaveTag(this, GodsentGameplayTags::Player_Status_MovementLocked) ||
+		UGodsentFunctionLibrary::NativeDoesActorHaveTag(this, GodsentGameplayTags::Shared_Status_Dead))
 		return;
 
 	const FVector2D MovementVector = InputActionValue.Get<FVector2D>();
@@ -122,6 +123,9 @@ void AGodsentHeroCharacter::Input_Move(const FInputActionValue& InputActionValue
 /// Rotates the camera
 void AGodsentHeroCharacter::Input_Look(const FInputActionValue& InputActionValue)
 {
+	if (UGodsentFunctionLibrary::NativeDoesActorHaveTag(this, GodsentGameplayTags::Shared_Status_Dead))
+		return;
+	
 	const FVector2D LookDirection = InputActionValue.Get<FVector2D>();
 
 	if (LookDirection.X != 0.f)

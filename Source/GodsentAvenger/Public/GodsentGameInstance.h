@@ -41,4 +41,8 @@ public:
 	/// Gets the level associated with a gameplay tag, or nullptr if not found
 	UFUNCTION(BlueprintPure, meta = (GameplayTagFilter = "GameData.Level"))
 	TSoftObjectPtr<UWorld> GetGameLevelByTag(FGameplayTag InTag) const;
+
+	/// The tag of the level set whose map is this world (works in PIE too). Empty if the map isn't in the level sets.
+	UFUNCTION(BlueprintPure)
+	FGameplayTag FindLevelTagForWorld(const UWorld* World) const;
 };

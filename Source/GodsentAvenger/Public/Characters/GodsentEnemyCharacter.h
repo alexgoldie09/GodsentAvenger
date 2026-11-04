@@ -41,12 +41,20 @@ public:
 	/// Overrides the patrol radius (the spawner calls this before the enemy finishes spawning)
 	void SetPatrolRadius(float NewPatrolRadius) { PatrolRadius = FMath::Max(NewPatrolRadius, 0.f); }
 
+	/// Base level (before the lineage tier is added)
 	UFUNCTION(BlueprintPure, Category = "Godsent|Stats")
 	int32 GetEnemyLevel() const { return EnemyLevel; }
 
-	/// Sets the level its start-up data is applied at. Only takes effect before the enemy is possessed
+	/// The level its start-up data was actually applied at (base level + lineage tier - 1)
+	UFUNCTION(BlueprintPure, Category = "Godsent|Stats")
+	int32 GetAppliedEnemyLevel() const { return AppliedEnemyLevel; }
+
+	/// Sets the base level. Only takes effect before the enemy is possessed
 	/// (the spawner calls this between spawning and finishing the spawn).
 	void SetEnemyLevel(int32 NewEnemyLevel) { EnemyLevel = FMath::Max(NewEnemyLevel, 1); }
+
+	/// Turns lineage-tier scaling on or off (before the enemy is possessed)
+	void SetScaleWithLineageTier(bool bShouldScale) { bScaleWithLineageTier = bShouldScale; }
 
 protected:
 	/// Hooks the health bar widget up to this enemy's UI component
@@ -87,6 +95,15 @@ protected:
 	/// Spawners set it per run; for placed enemies set it on the instance.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "1"))
 	int32 EnemyLevel = 1;
+
+	/// Adds the lineage's enemy tier (1 for generations 1-5, 2 for 6-10...) on top of Enemy Level:
+	/// applied level = Enemy Level + tier - 1. Untick for an enemy that should never scale.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stats")
+	bool bScaleWithLineageTier = true;
+
+	/// The level the start-up data was applied at
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Stats")
+	int32 AppliedEnemyLevel = 1;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI")
 	TObjectPtr<UEnemyUIComponent> EnemyUIComponent;

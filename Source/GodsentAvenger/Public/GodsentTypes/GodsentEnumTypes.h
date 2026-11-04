@@ -74,3 +74,15 @@ enum class EGodsentProjectileImpact : uint8
 	Blocked,	// Stopped by a full block or a parry
 	Fizzled		// Ran out of time, or its caster died
 };
+
+/// Where the current heir's run stands (set by the game mode)
+UENUM(BlueprintType)
+enum class EGodsentRunState : uint8
+{
+	Starting,		// Level loaded, waiting out the start delay before the name prompt
+	NamingHeir,		// Name prompt open (paused)
+	ChoosingSkills,	// Rebirth skill tree open (paused)
+	Playing,		// The heir is in control
+	Lost,			// The heir died: lose screen up (or about to be)
+	Won				// The level was won: win screen up (or about to be)
+};

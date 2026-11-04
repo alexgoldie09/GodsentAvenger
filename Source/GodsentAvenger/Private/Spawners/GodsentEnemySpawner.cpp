@@ -174,6 +174,7 @@ AGodsentEnemyCharacter* AGodsentEnemySpawner::SpawnOneEnemy()
 
 	// Before FinishSpawning: possession (and the start-up data, home location and patrol radius) happens inside it
 	Enemy->SetEnemyLevel(EnemyLevel);
+	Enemy->SetScaleWithLineageTier(bScaleWithLineageTier);
 
 	if (bOverridePatrolRadius)
 		Enemy->SetPatrolRadius(PatrolRadiusOverride);
