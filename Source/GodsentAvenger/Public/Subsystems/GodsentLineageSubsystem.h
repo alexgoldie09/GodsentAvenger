@@ -85,13 +85,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Lineage")
 	void StartNewGame();
 
-	/// Main Menu button for now: New Game, then load the game map
+	/// Main menu's Start Game button: New Game (wipes the lineage), then loads the game map
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Lineage", meta = (WorldContext = "WorldContextObject"))
 	void StartNewGameAndOpenLevel(const UObject* WorldContextObject);
 
-	/// Retry button: reloads the level the lineage was last in (the game map if none is recorded)
+	/// Retry and Continue buttons: reloads the level the lineage was last in (the game map if none is recorded)
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Lineage", meta = (WorldContext = "WorldContextObject"))
 	void OpenLastLevel(const UObject* WorldContextObject);
+
+	/// Main Menu buttons (pause menu, lose screen, win screen): commits, then opens GameData.Level.MainMenuMap.
+	/// The lineage is kept, so the main menu's Continue picks it back up.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Lineage", meta = (WorldContext = "WorldContextObject"))
+	void OpenMainMenu(const UObject* WorldContextObject);
+
+	/// True once a family has been founded (the founder named). Drives the main menu's Continue button.
+	/// No save files yet, so this only covers the current session; later it will also check for a save.
+	UFUNCTION(BlueprintPure, Category = "Godsent|Lineage")
+	bool HasLineageToContinue() const { return !LineageData.HeirName.IsEmpty(); }
 
 	/// The heir died: next generation, +1 skill point, the next heir needs a name, then commit
 	void RecordHeirDeath();
@@ -136,6 +146,9 @@ public:
 
 private:
 	void BroadcastLineageChanged();
+
+	/// Opens the level set up for this tag in the game instance's level sets. False if there isn't one.
+	bool OpenLevelByTag(UWorld* World, const FGameplayTag& LevelTag) const;
 
 	FGodsentLineageData LineageData;
 };

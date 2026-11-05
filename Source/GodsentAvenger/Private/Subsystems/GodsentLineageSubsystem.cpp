@@ -61,20 +61,43 @@ void UGodsentLineageSubsystem::OpenLastLevel(const UObject* WorldContextObject)
 
 	const FGameplayTag LevelTag = LineageData.LastLevelTag.IsValid() ? LineageData.LastLevelTag : GodsentGameplayTags::GameData_Level_GameMap;
 
-	if (const UGodsentGameInstance* GodsentGameInstance = Cast<UGodsentGameInstance>(GetGameInstance()))
-	{
-		const TSoftObjectPtr<UWorld> Level = GodsentGameInstance->GetGameLevelByTag(LevelTag);
-
-		if (!Level.IsNull())
-		{
-			UGameplayStatics::OpenLevelBySoftObjectPtr(World, Level);
-			return;
-		}
-	}
+	if (OpenLevelByTag(World, LevelTag))
+		return;
 
 	// Tag not set up in the game instance's level list: reload whatever level we're in
 	UE_LOG(LogTemp, Warning, TEXT("[Lineage] No level for %s in the game instance's level sets, reloading the current level"), *LevelTag.ToString());
 	UGameplayStatics::OpenLevel(World, FName(*UGameplayStatics::GetCurrentLevelName(World)));
+}
+
+/// Commits, then opens the main menu map. The lineage is kept for the menu's Continue button.
+void UGodsentLineageSubsystem::OpenMainMenu(const UObject* WorldContextObject)
+{
+	UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull) : nullptr;
+
+	if (!World)
+		return;
+
+	if (HasLineageToContinue())
+		CommitProgress();
+
+	if (!OpenLevelByTag(World, GodsentGameplayTags::GameData_Level_MainMenuMap))
+		UE_LOG(LogTemp, Warning, TEXT("[Lineage] No level for GameData.Level.MainMenuMap in the game instance's level sets"));
+}
+
+bool UGodsentLineageSubsystem::OpenLevelByTag(UWorld* World, const FGameplayTag& LevelTag) const
+{
+	const UGodsentGameInstance* GodsentGameInstance = Cast<UGodsentGameInstance>(GetGameInstance());
+
+	if (!GodsentGameInstance)
+		return false;
+
+	const TSoftObjectPtr<UWorld> Level = GodsentGameInstance->GetGameLevelByTag(LevelTag);
+
+	if (Level.IsNull())
+		return false;
+
+	UGameplayStatics::OpenLevelBySoftObjectPtr(World, Level);
+	return true;
 }
 
 /// The heir died: next generation, +1 skill point, the next heir needs a name
