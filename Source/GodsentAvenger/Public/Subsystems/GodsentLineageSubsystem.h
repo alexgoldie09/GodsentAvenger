@@ -93,6 +93,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Lineage", meta = (WorldContext = "WorldContextObject"))
 	void OpenLastLevel(const UObject* WorldContextObject);
 
+	/// Opens a level from the game instance's level sets, after the add-on ownership check (main menu's add-on button).
+	/// False, with Out Reason, when the level needs an add-on the player doesn't own or isn't set up.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Lineage", meta = (WorldContext = "WorldContextObject", GameplayTagFilter = "GameData.Level"))
+	bool OpenGameLevel(const UObject* WorldContextObject, FGameplayTag LevelTag, FText& OutReason);
+
 	/// Main Menu buttons (pause menu, lose screen, win screen): commits, then opens GameData.Level.MainMenuMap.
 	/// The lineage is kept, so the main menu's Continue picks it back up.
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Lineage", meta = (WorldContext = "WorldContextObject"))
@@ -147,8 +152,9 @@ public:
 private:
 	void BroadcastLineageChanged();
 
-	/// Opens the level set up for this tag in the game instance's level sets. False if there isn't one.
-	bool OpenLevelByTag(UWorld* World, const FGameplayTag& LevelTag) const;
+	/// Opens the level set up for this tag in the game instance's level sets, after the add-on ownership check.
+	/// False if there isn't one or it needs an add-on the player doesn't own.
+	bool OpenLevelByTag(UWorld* World, const FGameplayTag& LevelTag, FText* OutReason = nullptr) const;
 
 	FGodsentLineageData LineageData;
 };

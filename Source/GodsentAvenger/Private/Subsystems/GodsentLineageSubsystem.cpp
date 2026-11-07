@@ -51,7 +51,7 @@ void UGodsentLineageSubsystem::StartNewGameAndOpenLevel(const UObject* WorldCont
 	OpenLastLevel(WorldContextObject);
 }
 
-/// Reloads the level the lineage was last in (the game map if none is recorded)
+/// Reloads the level the lineage was last in (the game map if none is recorded, or if it can't be opened)
 void UGodsentLineageSubsystem::OpenLastLevel(const UObject* WorldContextObject)
 {
 	UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull) : nullptr;
@@ -59,14 +59,33 @@ void UGodsentLineageSubsystem::OpenLastLevel(const UObject* WorldContextObject)
 	if (!World)
 		return;
 
-	const FGameplayTag LevelTag = LineageData.LastLevelTag.IsValid() ? LineageData.LastLevelTag : GodsentGameplayTags::GameData_Level_GameMap;
-
-	if (OpenLevelByTag(World, LevelTag))
+	if (LineageData.LastLevelTag.IsValid() && OpenLevelByTag(World, LineageData.LastLevelTag))
 		return;
 
-	// Tag not set up in the game instance's level list: reload whatever level we're in
-	UE_LOG(LogTemp, Warning, TEXT("[Lineage] No level for %s in the game instance's level sets, reloading the current level"), *LevelTag.ToString());
+	if (OpenLevelByTag(World, GodsentGameplayTags::GameData_Level_GameMap))
+		return;
+
+	// Game map not set up in the game instance's level list: reload whatever level we're in
+	UE_LOG(LogTemp, Warning, TEXT("[Lineage] No level for GameData.Level.GameMap in the game instance's level sets, reloading the current level"));
 	UGameplayStatics::OpenLevel(World, FName(*UGameplayStatics::GetCurrentLevelName(World)));
+}
+
+/// Opens a level from the level sets after the ownership check
+bool UGodsentLineageSubsystem::OpenGameLevel(const UObject* WorldContextObject, FGameplayTag LevelTag, FText& OutReason)
+{
+	UWorld* World = GEngine ? GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull) : nullptr;
+	OutReason = FText::GetEmpty();
+
+	if (!World)
+		return false;
+
+	if (OpenLevelByTag(World, LevelTag, &OutReason))
+		return true;
+
+	if (OutReason.IsEmpty())
+		OutReason = FText::FromString(TEXT("That level isn't available."));
+
+	return false;
 }
 
 /// Commits, then opens the main menu map. The lineage is kept for the menu's Continue button.
@@ -84,12 +103,23 @@ void UGodsentLineageSubsystem::OpenMainMenu(const UObject* WorldContextObject)
 		UE_LOG(LogTemp, Warning, TEXT("[Lineage] No level for GameData.Level.MainMenuMap in the game instance's level sets"));
 }
 
-bool UGodsentLineageSubsystem::OpenLevelByTag(UWorld* World, const FGameplayTag& LevelTag) const
+bool UGodsentLineageSubsystem::OpenLevelByTag(UWorld* World, const FGameplayTag& LevelTag, FText* OutReason) const
 {
 	const UGodsentGameInstance* GodsentGameInstance = Cast<UGodsentGameInstance>(GetGameInstance());
 
 	if (!GodsentGameInstance)
 		return false;
+
+	// Add-on levels: ownership is checked every time, never remembered
+	FText Reason;
+
+	if (!GodsentGameInstance->CanOpenGameLevel(LevelTag, Reason))
+	{
+		if (OutReason)
+			*OutReason = Reason;
+
+		return false;
+	}
 
 	const TSoftObjectPtr<UWorld> Level = GodsentGameInstance->GetGameLevelByTag(LevelTag);
 

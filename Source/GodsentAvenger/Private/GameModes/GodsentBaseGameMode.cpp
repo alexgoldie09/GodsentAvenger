@@ -21,9 +21,16 @@ void AGodsentBaseGameMode::HandleHeroControllerReady(AGodsentHeroController* Her
 	if (!HeroController)
 		return;
 
+	// Add-on content is checked every time it's used, including loading straight into it
+	if (!CheckLevelOwnership())
+	{
+		HeroController->SetHeroInputBlocked(true);
+		return;
+	}
+
 	const UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this);
 
-	if (!Lineage || !Lineage->NeedsHeirName())
+	if (!bTracksLineage || !Lineage || !Lineage->NeedsHeirName())
 	{
 		StartHeirPlay(HeroController);
 		return;
@@ -85,6 +92,10 @@ void AGodsentBaseGameMode::StartHeirPlay(AGodsentHeroController* HeroController)
 	HeroController->SetHeroInputBlocked(false);
 	HeroController->ResumeGameplay();
 
+	// Side modes never become the Continue level and don't commit on loading in
+	if (!bTracksLineage)
+		return;
+
 	if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
 	{
 		if (const UGodsentGameInstance* GodsentGameInstance = Cast<UGodsentGameInstance>(GetGameInstance()))
@@ -102,8 +113,12 @@ void AGodsentBaseGameMode::HandleHeroDefeated(AGodsentHeroController* HeroContro
 
 	SetRunState(EGodsentRunState::Lost);
 
-	if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
-		Lineage->RecordHeirDeath();
+	// Side modes: the heir just retries; the family doesn't move on a generation
+	if (bTracksLineage)
+	{
+		if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
+			Lineage->RecordHeirDeath();
+	}
 
 	RunAfterDelay(HeroController, LoseScreenDelay, [](AGodsentHeroController* Controller)
 	{
@@ -128,6 +143,52 @@ void AGodsentBaseGameMode::HandleRunWon()
 	{
 		Controller->ShowWinScreen();
 	});
+}
+
+/// Lose screen's Try Again
+void AGodsentBaseGameMode::RestartRun()
+{
+	UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this);
+
+	if (!Lineage)
+		return;
+
+	if (bTracksLineage)
+	{
+		Lineage->OpenLastLevel(this);
+		return;
+	}
+
+	// Side mode: reopen this level (ownership is checked again); main menu if that's refused
+	const UGodsentGameInstance* GodsentGameInstance = Cast<UGodsentGameInstance>(GetGameInstance());
+	const FGameplayTag ThisLevelTag = GodsentGameInstance ? GodsentGameInstance->FindLevelTagForWorld(GetWorld()) : FGameplayTag();
+
+	FText Reason;
+
+	if (!ThisLevelTag.IsValid() || !Lineage->OpenGameLevel(this, ThisLevelTag, Reason))
+		Lineage->OpenMainMenu(this);
+}
+
+/// Add-on levels: false (and back to the main menu) if this level needs an add-on the player doesn't own
+bool AGodsentBaseGameMode::CheckLevelOwnership()
+{
+	const UGodsentGameInstance* GodsentGameInstance = Cast<UGodsentGameInstance>(GetGameInstance());
+
+	if (!GodsentGameInstance)
+		return true;
+
+	const FGameplayTag ThisLevelTag = GodsentGameInstance->FindLevelTagForWorld(GetWorld());
+	FText Reason;
+
+	if (!ThisLevelTag.IsValid() || GodsentGameInstance->CanOpenGameLevel(ThisLevelTag, Reason))
+		return true;
+
+	UE_LOG(LogTemp, Warning, TEXT("[Add-ons] %s needs an add-on that isn't owned, returning to the main menu"), *ThisLevelTag.ToString());
+
+	if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
+		Lineage->OpenMainMenu(this);
+
+	return false;
 }
 
 void AGodsentBaseGameMode::SetRunState(EGodsentRunState NewState)

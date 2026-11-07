@@ -19,6 +19,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRunStateChangedDelegate, EGodsent
  *
  *   Level loads → (Heir Name Prompt Delay) → name prompt → rebirth skill tree (every heir after the founder) → play
  *   Heir dies   → death recorded on the lineage → (Lose Screen Delay) → lose screen
+ *
+ * Side modes (the DLC) untick Tracks Lineage: the current heir plays with the family's skills, but there's no name prompt,
+ * deaths don't move the family on, and the level is never remembered for Continue.
+ * Levels that need an add-on check ownership again when they load, and send the player to the main menu if it isn't owned.
  */
 UCLASS()
 class GODSENTAVENGER_API AGodsentBaseGameMode : public AGameModeBase
@@ -55,7 +59,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Run")
 	void HandleRunWon();
 
+	/// Lose screen's Try Again: the main game reopens the lineage's last level (the next heir's name prompt);
+	/// a side mode (Tracks Lineage off) reopens its own level, re-checking add-on ownership
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Run")
+	void RestartRun();
+
+	/// False for side modes such as the DLC
+	UFUNCTION(BlueprintPure, Category = "Godsent|Run")
+	bool TracksLineage() const { return bTracksLineage; }
+
 protected:
+	/// On: the main game (name prompt, deaths move the family on, Continue returns here).
+	/// Off: a side mode such as the DLC (no name prompt, deaths aren't recorded, never the Continue level).
+	UPROPERTY(EditDefaultsOnly, Category = "Run")
+	bool bTracksLineage = true;
+
 	/// Seconds after the level loads before the name prompt appears (the heir can't move meanwhile). 0 = straight away.
 	UPROPERTY(EditDefaultsOnly, Category = "Run", meta = (ClampMin = "0.0", Units = "s"))
 	float HeirNamePromptDelay = 1.5f;
@@ -69,6 +87,9 @@ protected:
 	float WinScreenDelay = 3.f;
 
 private:
+	/// Add-on levels: false (and back to the main menu) if this level needs an add-on the player doesn't own
+	bool CheckLevelOwnership();
+
 	void ShowHeirNamePrompt(AGodsentHeroController* HeroController);
 
 	/// The heir takes control: unpause, give input back, record the level and commit ("loading in")
