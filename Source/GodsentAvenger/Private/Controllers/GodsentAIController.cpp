@@ -53,7 +53,7 @@ ETeamAttitude::Type AGodsentAIController::GetTeamAttitudeTowards(const AActor& O
 	return ETeamAttitude::Friendly;
 }
 
-/// Starts the tree, then seeds HomeLocation and PatrolRadius (the Blueprint calls this from On Possess)
+/// Starts the tree, then seeds HomeLocation, HomeRotation and PatrolRadius (the Blueprint calls this from On Possess)
 bool AGodsentAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 {
 	const bool bStarted = Super::RunBehaviorTree(BTAsset);
@@ -62,7 +62,10 @@ bool AGodsentAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 	{
 		// Setting a key the blackboard doesn't have does nothing, so the dummy's blackboard is unaffected
 		if (bHasHomeLocation)
+		{
 			BlackboardComponent->SetValueAsVector(HomeLocationKeyName, HomeLocation);
+			BlackboardComponent->SetValueAsRotator(HomeRotationKeyName, HomeRotation);
+		}
 
 		if (const AGodsentEnemyCharacter* EnemyCharacter = Cast<AGodsentEnemyCharacter>(GetPawn()))
 			BlackboardComponent->SetValueAsFloat(PatrolRadiusKeyName, EnemyCharacter->GetPatrolRadius());
@@ -123,6 +126,7 @@ void AGodsentAIController::OnPossess(APawn* InPawn)
 	if (InPawn)
 	{
 		HomeLocation = InPawn->GetActorLocation();
+		HomeRotation = FRotator(0.f, InPawn->GetActorRotation().Yaw, 0.f);
 		bHasHomeLocation = true;
 	}
 

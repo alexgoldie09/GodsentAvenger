@@ -75,6 +75,8 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Ranged, "Enemy.Ability.Ranged");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_SummonEnemies, "Enemy.Ability.SummonEnemies");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Wail, "Enemy.Ability.Wail");   // ghost's always-on pulse aura
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_SlamRun_Start, "Enemy.Ability.SlamRun.Start");   // zombie wind-up before the slam run (not under Melee, so melee picks never choose it)
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_SlamRun_Slam, "Enemy.Ability.SlamRun.Slam");     // zombie slam at the end of a slam run (no wind-up)
 
 	/** Enemy Weapon Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Weapon, "Enemy.Weapon");

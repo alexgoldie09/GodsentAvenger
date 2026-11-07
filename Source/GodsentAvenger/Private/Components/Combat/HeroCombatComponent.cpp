@@ -55,8 +55,5 @@ void UHeroCombatComponent::OnHitTargetActor(AActor* HitActor)
 /// Sends HitPause as the blade leaves the target
 void UHeroCombatComponent::OnWeaponPulledFromTargetActor(AActor* InteractedActor)
 {
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
-		GetOwningPawn(),
-		GodsentGameplayTags::Player_Event_HitPause,
-		FGameplayEventData());
+	
 }

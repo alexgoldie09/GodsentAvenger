@@ -21,7 +21,8 @@ struct FGameplayEventData;
  * - with Forget Lost Targets on, cleared once the target has been out of sight for Forget Target Delay,
  *   unless it is still within Close Range Memory Distance (so circling behind the enemy doesn't shake it off).
  *
- * Also remembers the pawn's home (where it was possessed) for patrolling, writes HomeLocation and PatrolRadius
+ * Also remembers the pawn's home (where and which way it was facing when possessed) for patrolling, writes HomeLocation,
+ * HomeRotation and PatrolRadius
  * into the blackboard when a tree starts, and stops the tree when the pawn dies.
  */
 UCLASS()
@@ -37,7 +38,7 @@ public:
 	//~ End IGenericTeamAgentInterface Interface.
 
 	//~ Begin AAIController Interface.
-	/// Also seeds HomeLocation and PatrolRadius in the new blackboard
+	/// Also seeds HomeLocation, HomeRotation and PatrolRadius in the new blackboard
 	virtual bool RunBehaviorTree(UBehaviorTree* BTAsset) override;
 	//~ End AAIController Interface.
 
@@ -46,6 +47,10 @@ public:
 	FVector GetHomeLocation() const { return HomeLocation; }
 
 	bool HasHomeLocation() const { return bHasHomeLocation; }
+
+	/// Which way the pawn faced when possessed (a guard that doesn't patrol turns back to it when it gets home)
+	UFUNCTION(BlueprintPure, Category = "Godsent|AI")
+	FRotator GetHomeRotation() const { return HomeRotation; }
 
 	UFUNCTION(BlueprintPure, Category = "Godsent|AI")
 	AActor* GetTargetActor() const;
@@ -108,6 +113,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Blackboard")
 	FName HomeLocationKeyName = FName("HomeLocation");
 
+	/// Rotator key written when the tree starts (skipped if the blackboard doesn't have it)
+	UPROPERTY(EditDefaultsOnly, Category = "AI|Blackboard")
+	FName HomeRotationKeyName = FName("HomeRotation");
+
 	/// Float key written when the tree starts, from the enemy's Patrol Radius (skipped if the blackboard doesn't have it)
 	UPROPERTY(EditDefaultsOnly, Category = "AI|Blackboard")
 	FName PatrolRadiusKeyName = FName("PatrolRadius");
@@ -135,6 +144,7 @@ private:
 	void UnbindPawnAbilitySystemEvents();
 
 	FVector HomeLocation = FVector::ZeroVector;
+	FRotator HomeRotation = FRotator::ZeroRotator;
 	bool bHasHomeLocation = false;
 
 	FTimerHandle ForgetTargetTimerHandle;
