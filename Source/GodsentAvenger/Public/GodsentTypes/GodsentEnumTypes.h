@@ -86,3 +86,11 @@ enum class EGodsentRunState : uint8
 	Lost,			// The heir died: lose screen up (or about to be)
 	Won				// The level was won: win screen up (or about to be)
 };
+
+/// Console model the game was launched for (-trc_profile=base / enhanced). Base when no flag is given.
+UENUM(BlueprintType)
+enum class EGodsentQualityProfile : uint8
+{
+	Base,		// Standard model: 1080p, 60 fps cap, Medium scalability (defaults)
+	Enhanced	// Upgraded model: 4K, 30 fps cap, High scalability (defaults)
+};

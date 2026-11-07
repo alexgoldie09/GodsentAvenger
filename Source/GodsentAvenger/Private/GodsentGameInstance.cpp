@@ -3,6 +3,8 @@
 
 #include "GodsentGameInstance.h"
 #include "Engine/World.h"
+#include "Engine/Engine.h"
+#include "GameFramework/GameUserSettings.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 
@@ -31,6 +33,57 @@ void UGodsentGameInstance::Init()
 	}
 
 	UE_LOG(LogTemp, Display, TEXT("[Add-ons] -trc_owned: %s"), OwnedList.IsEmpty() ? TEXT("(none)") : *OwnedList);
+
+	// Quality profile: the platform tells the game which model it's on; no flag means Base
+	FString ProfileName;
+	ActiveQualityProfile = EGodsentQualityProfile::Base;
+
+	if (FParse::Value(FCommandLine::Get(), TEXT("trc_profile="), ProfileName))
+	{
+		if (ProfileName.Equals(TEXT("enhanced"), ESearchCase::IgnoreCase))
+			ActiveQualityProfile = EGodsentQualityProfile::Enhanced;
+		else if (!ProfileName.Equals(TEXT("base"), ESearchCase::IgnoreCase))
+			UE_LOG(LogTemp, Warning, TEXT("[Profile] Unknown -trc_profile=%s, using Base"), *ProfileName);
+	}
+
+	UE_LOG(LogTemp, Display, TEXT("[Profile] -trc_profile: %s -> %s"),
+		ProfileName.IsEmpty() ? TEXT("(none)") : *ProfileName,
+		ActiveQualityProfile == EGodsentQualityProfile::Enhanced ? TEXT("Enhanced") : TEXT("Base"));
+}
+
+/// Applies the profile read in Init, now that the engine is fully up (scalability is ignored before this)
+void UGodsentGameInstance::OnStart()
+{
+	Super::OnStart();
+
+	// Applying in Play In Editor would change the editor's own scalability and frame rate
+	if (!GIsEditor || !bSkipQualityProfileInPIE)
+		ApplyQualityProfile(ActiveQualityProfile);
+}
+
+FGodsentQualityProfileSettings UGodsentGameInstance::GetQualityProfileSettings(EGodsentQualityProfile Profile) const
+{
+	return Profile == EGodsentQualityProfile::Enhanced ? EnhancedProfile : BaseProfile;
+}
+
+/// Get Game User Settings → Set Screen Resolution / Set Frame Rate Limit / Set Overall Scalability Level → Apply Settings
+void UGodsentGameInstance::ApplyQualityProfile(EGodsentQualityProfile Profile)
+{
+	UGameUserSettings* GameUserSettings = GEngine ? GEngine->GetGameUserSettings() : nullptr;
+
+	if (!GameUserSettings)
+		return;
+
+	const FGodsentQualityProfileSettings Settings = GetQualityProfileSettings(Profile);
+
+	GameUserSettings->SetScreenResolution(Settings.Resolution);
+	GameUserSettings->SetFrameRateLimit(Settings.FrameRateLimit);
+	GameUserSettings->SetOverallScalabilityLevel(Settings.OverallScalabilityLevel);
+	GameUserSettings->ApplySettings(false);
+
+	UE_LOG(LogTemp, Display, TEXT("[Profile] Applied %s: %dx%d, %.0f fps cap, scalability %d"),
+		Profile == EGodsentQualityProfile::Enhanced ? TEXT("Enhanced") : TEXT("Base"),
+		Settings.Resolution.X, Settings.Resolution.Y, Settings.FrameRateLimit, Settings.OverallScalabilityLevel);
 }
 
 bool UGodsentGameInstance::IsContentOwned(FName ContentId) const

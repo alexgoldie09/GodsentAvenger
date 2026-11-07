@@ -5,7 +5,34 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Engine/GameInstance.h"
+#include "GodsentTypes/GodsentEnumTypes.h"
 #include "GodsentGameInstance.generated.h"
+
+/// What a quality profile applies at startup
+USTRUCT(BlueprintType)
+struct FGodsentQualityProfileSettings
+{
+	GENERATED_BODY()
+
+	FGodsentQualityProfileSettings() {}
+
+	FGodsentQualityProfileSettings(const FIntPoint& InResolution, float InFrameRateLimit, int32 InOverallScalabilityLevel)
+		: Resolution(InResolution), FrameRateLimit(InFrameRateLimit), OverallScalabilityLevel(InOverallScalabilityLevel)
+	{
+	}
+
+	/// Screen resolution (only visible in Windowed or exclusive Fullscreen; Windowed Fullscreen uses the desktop's)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Quality Profile")
+	FIntPoint Resolution = FIntPoint(1920, 1080);
+
+	/// Frame rate cap in frames per second (0 = uncapped)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Quality Profile", meta = (ClampMin = "0.0", Units = "Hz"))
+	float FrameRateLimit = 60.f;
+
+	/// Overall scalability: 0 Low, 1 Medium, 2 High, 3 Epic, 4 Cinematic
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Quality Profile", meta = (ClampMin = "0", ClampMax = "4"))
+	int32 OverallScalabilityLevel = 1;
+};
 
 USTRUCT(BlueprintType)
 struct FGodsentGameLevelSet
@@ -42,8 +69,27 @@ class GODSENTAVENGER_API UGodsentGameInstance : public UGameInstance
 	GENERATED_BODY()
 
 public:
-	/// Reads -trc_owned from the command line
+	/// Reads -trc_owned (add-on ownership) and -trc_profile (quality profile, applied straight away) from the command line
 	virtual void Init() override;
+	
+	/// Applies the launch quality profile. Done here rather than in Init because Unreal only applies
+    	/// scalability once the engine has finished starting up.
+    	virtual void OnStart() override;
+
+	// ---- Quality profiles (ENH-01) ----
+
+	/// The profile this launch uses: -trc_profile=enhanced gives Enhanced, -trc_profile=base or no flag gives Base
+	UFUNCTION(BlueprintPure, Category = "Godsent|Quality Profile")
+	EGodsentQualityProfile GetActiveQualityProfile() const { return ActiveQualityProfile; }
+
+	/// The settings a profile applies
+	UFUNCTION(BlueprintPure, Category = "Godsent|Quality Profile")
+	FGodsentQualityProfileSettings GetQualityProfileSettings(EGodsentQualityProfile Profile) const;
+
+	/// Applies a profile's resolution, frame rate cap and scalability through the game user settings, and saves them.
+	/// Called at startup with the launch profile; an options menu "Reset to profile" button can call it too.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Quality Profile")
+	void ApplyQualityProfile(EGodsentQualityProfile Profile);
 
 	/// True if this add-on ID was listed in -trc_owned (None counts as owned: base-game content)
 	UFUNCTION(BlueprintPure, Category = "Godsent|Add-ons")
@@ -66,6 +112,21 @@ private:
 	/// Has no effect in Standalone or packaged builds, where only -trc_owned counts (test the requirement there).
 	UPROPERTY(EditDefaultsOnly, Category = "Add-ons")
 	bool bTreatAddOnsAsOwnedInPIE = true;
+
+	/// Base console model: applied with -trc_profile=base, or when there's no flag
+	UPROPERTY(EditDefaultsOnly, Category = "Quality Profiles")
+	FGodsentQualityProfileSettings BaseProfile = FGodsentQualityProfileSettings(FIntPoint(1920, 1080), 60.f, 1);
+
+	/// Enhanced console model: applied with -trc_profile=enhanced
+	UPROPERTY(EditDefaultsOnly, Category = "Quality Profiles")
+	FGodsentQualityProfileSettings EnhancedProfile = FGodsentQualityProfileSettings(FIntPoint(3840, 2160), 30.f, 2);
+
+	/// Editor convenience: Play In Editor never applies a profile (it would change the editor's own scalability).
+	/// Standalone and packaged builds always apply one.
+	UPROPERTY(EditDefaultsOnly, Category = "Quality Profiles")
+	bool bSkipQualityProfileInPIE = true;
+
+	EGodsentQualityProfile ActiveQualityProfile = EGodsentQualityProfile::Base;
 
 protected:
 	/// The set of levels available in the game, each associated with a gameplay tag
