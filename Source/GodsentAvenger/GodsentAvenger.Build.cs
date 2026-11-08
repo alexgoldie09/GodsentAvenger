@@ -27,6 +27,6 @@ public class GodsentAvenger : ModuleRules
 		});
 
 		// Slate: the save popup puts focus back on the menu button that had it
-		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore", "EngineSettings" });
 	}
 }

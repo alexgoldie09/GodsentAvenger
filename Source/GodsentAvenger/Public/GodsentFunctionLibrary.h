@@ -111,4 +111,13 @@ public:
 	/// Toggles the input mode between GameOnly and UIOnly. Useful for switching between gameplay and UI interaction.
 	UFUNCTION(BlueprintCallable, Category = "Godsent|FunctionLibrary", meta = (WorldContext = "WorldContextObject"))
 	static void ToggleInputMode(const UObject* WorldContextObject, EGodsentInputMode InInputMode);
+
+	/// Project Settings > Project > Description > Project Version (e.g. "01.00"). The one place the version lives (BLD-02).
+	UFUNCTION(BlueprintPure, Category = "Godsent|Version")
+	static FString GetProjectVersion();
+
+	/// The version screen line every evidence video starts on: "Version 01.00  |  08/11/2026 18:44:05" (local date and time).
+	/// Bind a text block to it (or set it on a timer) so the clock keeps ticking.
+	UFUNCTION(BlueprintPure, Category = "Godsent|Version")
+	static FText GetVersionScreenText();
 };

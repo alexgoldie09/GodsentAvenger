@@ -61,39 +61,8 @@ public:
 	/// Stops (or restores) the heir's movement, camera and ability input, e.g. while waiting for the name prompt
 	void SetHeroInputBlocked(bool bBlocked);
 
-	/// Debug: wipes the lineage and reloads the map, e.g. "GodsentNewGame"
-	UFUNCTION(Exec)
-	void GodsentNewGame();
-
-	/// Debug: sets the generation (enemy tier = 1 + (generation - 1) / 5), e.g. "GodsentSetGeneration 6", then Retry or reload to see tier 2 enemies
-	UFUNCTION(Exec)
-	void GodsentSetGeneration(int32 NewGeneration);
-
-	/// Debug: prints the lineage data to the log, e.g. "GodsentPrintLineage"
-	UFUNCTION(Exec)
-	void GodsentPrintLineage();
-
-	/// Debug: adds skill points, e.g. "GodsentGrantSkillPoints 24"
-	UFUNCTION(Exec)
-	void GodsentGrantSkillPoints(int32 Amount);
-
-	/// Debug: unlocks a skill and its earlier tiers for free, e.g. "GodsentUnlockSkill Skill.Dexterity.Avoidance.GracedEvasion"
-	UFUNCTION(Exec)
-	void GodsentUnlockSkill(FName SkillTagName);
-
-	/// Console command for testing skill tiers until the skill tree exists, e.g.
-	/// "GodsentSetAbilityLevel Player.Ability.Dodge 3" (Graced Evasion) or "GodsentSetAbilityLevel Player.Ability.Attack.Light 2" (Combo)
-	UFUNCTION(Exec)
-	void GodsentSetAbilityLevel(FName AbilityTagName, int32 NewLevel);
-	
-	/// Grants an ability from DebugGrantableAbilities by its Asset Tag, or sets its level if it's already granted, e.g.
-	/// "GodsentGrantAbility Player.Ability.Light 2"
-	UFUNCTION(Exec)
-	void GodsentGrantAbility(FName AbilityTagName, int32 Level);
-
-	/// Removes every granted ability with this Asset Tag, e.g. "GodsentRemoveAbility Player.Ability.Light"
-	UFUNCTION(Exec)
-	void GodsentRemoveAbility(FName AbilityTagName);
+	/// Abilities the cheat manager's GodsentGrantAbility can grant (debug only; Shipping has no cheat manager)
+	const TArray<FGodsentHeroAbilitySet>& GetDebugGrantableAbilities() const { return DebugGrantableAbilities; }
 
 protected:
 	/// Reports to the game mode, which decides whether to show the name prompt or start play

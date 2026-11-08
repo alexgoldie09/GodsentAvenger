@@ -13,6 +13,8 @@
 #include "GameFramework/Pawn.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "GodsentTypes/GodsentCountDownAction.h"
+#include "GeneralProjectSettings.h"
+#include "Misc/DateTime.h"
 #include "GodsentGameInstance.h"
 
 /// Gets the Godsent Ability System Component from an actor (asserts if the actor has none)
@@ -351,4 +353,19 @@ void UGodsentFunctionLibrary::ToggleInputMode(const UObject* WorldContextObject,
 
 
 
+}
+
+/// The project version from Project Settings
+FString UGodsentFunctionLibrary::GetProjectVersion()
+{
+	return GetDefault<UGeneralProjectSettings>()->ProjectVersion;
+}
+
+/// "Version 01.00  |  08/11/2026 18:44:05"
+FText UGodsentFunctionLibrary::GetVersionScreenText()
+{
+	const FString Now = FDateTime::Now().ToString(TEXT("%d/%m/%Y %H:%M:%S"));
+
+	return FText::Format(NSLOCTEXT("GodsentVersion", "VersionScreen", "Version {0}  |  {1}"),
+		FText::FromString(GetProjectVersion()), FText::FromString(Now));
 }
