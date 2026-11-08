@@ -94,3 +94,20 @@ enum class EGodsentQualityProfile : uint8
 	Base,		// Standard model: 1080p, 60 fps cap, Medium scalability (defaults)
 	Enhanced	// Upgraded model: 4K, 30 fps cap, High scalability (defaults)
 };
+
+/// What happened when the lineage save was read at startup
+UENUM(BlueprintType)
+enum class EGodsentSaveLoadResult : uint8
+{
+	NoSave,		// No save file (first launch), or a load problem the player has already dealt with
+	Loaded,		// The save loaded and the family can be continued
+	Damaged		// A save file exists but can't be read (damaged, or from a newer version): the player is told on the main menu
+};
+
+/// Which message the save popup is showing
+UENUM(BlueprintType)
+enum class EGodsentSavePopupKind : uint8
+{
+	SaveFailed,	// Writing the save failed: Retry / Continue without saving
+	LoadFailed	// The save couldn't be read at startup: Start a new family / Back
+};

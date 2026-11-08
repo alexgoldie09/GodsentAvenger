@@ -5,6 +5,7 @@
 #include "Camera/CameraActor.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Subsystems/GodsentLineageSubsystem.h"
 
 AGodsentMainMenuGameMode::AGodsentMainMenuGameMode()
 {
@@ -46,5 +47,9 @@ void AGodsentMainMenuGameMode::BeginPlay()
 	InputMode.SetWidgetToFocus(MainMenuWidget->TakeWidget());
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	PlayerController->SetInputMode(InputMode);
-	PlayerController->SetShowMouseCursor(true);
+	PlayerController->SetShowMouseCursor(false); // Console rule: the cursor is never shown (UI-03)
+
+	// A save that couldn't be read is reported here, on top of the menu (SAV-03)
+	if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
+		Lineage->ShowLoadProblemIfAny(PlayerController, MainMenuWidget);
 }

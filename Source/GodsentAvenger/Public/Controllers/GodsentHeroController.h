@@ -135,7 +135,7 @@ protected:
 	TArray<FGodsentHeroAbilitySet> DebugGrantableAbilities;
 
 private:
-	/// Adds a widget and gives it the mouse; pauses the game clock too if bPause (not the pause menu)
+	/// Adds a widget and gives it focus (no cursor); pauses the game clock too if bPause (not the pause menu)
 	void ShowMenuWidget(UUserWidget* Widget, bool bPause);
 
 	void RemoveWidget(TObjectPtr<UUserWidget>& Widget);

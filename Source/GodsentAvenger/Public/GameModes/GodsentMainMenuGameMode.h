@@ -12,7 +12,7 @@ class UUserWidget;
  * Game mode for the main menu map. Spawns no hero (Default Pawn Class is None) and uses a plain PlayerController,
  * so none of the rebirth loop (name prompt, death handling) runs here.
  *
- * On BeginPlay it shows the main menu widget with the mouse, and looks through the level's first Camera Actor if there is one.
+ * On BeginPlay it shows the main menu widget (no mouse cursor, gamepad/keyboard focus), reports a damaged save if there is one, and looks through the level's first Camera Actor if there is one.
  */
 UCLASS()
 class GODSENTAVENGER_API AGodsentMainMenuGameMode : public AGameModeBase

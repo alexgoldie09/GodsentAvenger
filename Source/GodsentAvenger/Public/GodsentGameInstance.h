@@ -8,6 +8,8 @@
 #include "GodsentTypes/GodsentEnumTypes.h"
 #include "GodsentGameInstance.generated.h"
 
+class UGodsentSavePopupWidget;
+
 /// What a quality profile applies at startup
 USTRUCT(BlueprintType)
 struct FGodsentQualityProfileSettings
@@ -128,6 +130,10 @@ private:
 
 	EGodsentQualityProfile ActiveQualityProfile = EGodsentQualityProfile::Base;
 
+	/// Popup for save errors (UI-07, SAV-02, SAV-03). Create WBP_SavePopup from GodsentSavePopupWidget and set it here.
+	UPROPERTY(EditDefaultsOnly, Category = "Save")
+	TSubclassOf<UGodsentSavePopupWidget> SavePopupWidgetClass;
+
 protected:
 	/// The set of levels available in the game, each associated with a gameplay tag
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
@@ -137,6 +143,9 @@ public:
 	/// Gets the level associated with a gameplay tag, or nullptr if not found
 	UFUNCTION(BlueprintPure, meta = (GameplayTagFilter = "GameData.Level"))
 	TSoftObjectPtr<UWorld> GetGameLevelByTag(FGameplayTag InTag) const;
+
+	/// The save error popup class (WBP_SavePopup), shown by the lineage subsystem when a save fails or the save can't be loaded
+	TSubclassOf<UGodsentSavePopupWidget> GetSavePopupWidgetClass() const { return SavePopupWidgetClass; }
 
 	/// The tag of the level set whose map is this world (works in PIE too). Empty if the map isn't in the level sets.
 	UFUNCTION(BlueprintPure)

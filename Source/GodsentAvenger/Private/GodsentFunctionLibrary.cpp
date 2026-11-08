@@ -345,7 +345,7 @@ void UGodsentFunctionLibrary::ToggleInputMode(const UObject* WorldContextObject,
 		break;
 		case EGodsentInputMode::UIOnly:
 			PlayerController->SetInputMode(UIOnlyInputMode);
-			PlayerController->bShowMouseCursor = true;
+			PlayerController->bShowMouseCursor = false; // Console rule: the cursor is never shown (UI-03)
 		break;
 	}
 

@@ -200,7 +200,7 @@ void AGodsentHeroController::ShowMenuWidget(UUserWidget* Widget, bool bPause)
 	InputMode.SetWidgetToFocus(Widget->TakeWidget());
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	SetInputMode(InputMode);
-	SetShowMouseCursor(true);
+	SetShowMouseCursor(false); // Console rule: the cursor is never shown (UI-03)
 }
 
 void AGodsentHeroController::RemoveWidget(TObjectPtr<UUserWidget>& Widget)
@@ -256,7 +256,7 @@ void AGodsentHeroController::GodsentSetGeneration(int32 NewGeneration)
 void AGodsentHeroController::GodsentPrintLineage()
 {
 	if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
-		Lineage->CommitProgress(); // Its log line prints the whole struct
+		Lineage->LogLineage(); // Prints the whole struct without saving
 }
 
 /// Debug: adds skill points

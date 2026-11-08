@@ -25,5 +25,8 @@ public class GodsentAvenger : ModuleRules
 			"NavigationSystem",
 			"UMG"
 		});
+
+		// Slate: the save popup puts focus back on the menu button that had it
+		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 	}
 }

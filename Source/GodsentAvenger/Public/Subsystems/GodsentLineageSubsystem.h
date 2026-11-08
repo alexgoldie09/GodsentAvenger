@@ -5,11 +5,17 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "GodsentTypes/GodsentEnumTypes.h"
 #include "GodsentLineageSubsystem.generated.h"
+
+class APlayerController;
+class SWidget;
+class UGodsentSavePopupWidget;
+class UUserWidget;
 
 /**
  * The family's progress across every heir. Plain data only (numbers, strings, tags, colours, no object references),
- * so it can be written to a save game as-is later.
+ * so it's written to the save game as-is (see UGodsentLineageSaveGame).
  */
 USTRUCT(BlueprintType)
 struct FGodsentLineageData
@@ -46,13 +52,20 @@ struct FGodsentLineageData
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLineageChangedDelegate, const FGodsentLineageData&, LineageData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLineageSaveFailedDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSavePopupClosedDelegate);
 
 /**
  * Owns the lineage data. A game instance subsystem lives for the whole game session, so it survives the level reload on Retry,
  * unlike the controller (and its skill tree component), which is destroyed and recreated with the level.
  *
- * Every save point goes through CommitProgress(): on death, on loading in, and when a skill is bought.
- * It only logs for now; the real save goes inside it later without any calling code changing.
+ * Saving: the lineage is loaded from one save slot when the game starts, and every save point goes through CommitProgress()
+ * (on death, on loading in, when a skill is bought, and on Start Game). The file is a checksum-wrapped USaveGame, so a damaged
+ * file is always recognised instead of being half-read.
+ *   - A save that fails shows the save popup (Retry / Continue without saving) and play carries on (SAV-02).
+ *     Anything that would change level waits until the popup is closed, so the message is never lost in a level change.
+ *   - A save that can't be read is reported on the main menu (Start a new family / Back) and never crashes (SAV-03).
+ *     The damaged file is left alone until the player chooses to replace it.
  */
 UCLASS(BlueprintType)
 class GODSENTAVENGER_API UGodsentLineageSubsystem : public UGameInstanceSubsystem
@@ -66,8 +79,13 @@ public:
 	/// Enemy tier goes up by one every this many generations (deaths)
 	static constexpr int32 GenerationsPerEnemyTier = 5;
 
+	/// The one save slot (Saved/SaveGames/Lineage.sav). Start Game overwrites it.
+	static const TCHAR* SaveSlotName;
+	static constexpr int32 SaveUserIndex = 0;
+
 	//~ Begin USubsystem Interface
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
 	//~ End USubsystem Interface
 
 	/// The subsystem from any world object (nullptr if there's no game instance yet)
@@ -77,11 +95,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Godsent|Lineage")
 	FGodsentLineageData GetLineageData() const { return LineageData; }
 
-	/// The single save point. Called on death, on loading in, and when a skill is bought. Logs only, for now.
+	/// The single save point: writes the lineage to the save slot. Called on death, on loading in, when a skill is bought,
+	/// and on Start Game. If the write fails, the save popup appears (Retry / Continue without saving).
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Lineage")
 	void CommitProgress();
 
-	/// Resets the lineage to a brand-new family (what loading with no save file will do later)
+	/// Resets the lineage to a brand-new family and saves it straight away, so the old family can't come back on Continue
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Lineage")
 	void StartNewGame();
 
@@ -103,8 +122,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Lineage", meta = (WorldContext = "WorldContextObject"))
 	void OpenMainMenu(const UObject* WorldContextObject);
 
-	/// True once a family has been founded (the founder named). Drives the main menu's Continue button.
-	/// No save files yet, so this only covers the current session; later it will also check for a save.
+	/// True once a family has been founded (the founder named), this session or in the loaded save. Drives the main menu's Continue button.
 	UFUNCTION(BlueprintPure, Category = "Godsent|Lineage")
 	bool HasLineageToContinue() const { return !LineageData.HeirName.IsEmpty(); }
 
@@ -146,15 +164,80 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Godsent|Lineage")
 	FOnLineageChangedDelegate OnLineageChanged;
 
+	// ---- Saving ----
+
+	/// What happened when the save was read at startup (No Save / Loaded / Damaged)
+	UFUNCTION(BlueprintPure, Category = "Godsent|Save")
+	EGodsentSaveLoadResult GetLoadResult() const { return LoadResult; }
+
+	/// True while the save popup is on screen
+	UFUNCTION(BlueprintPure, Category = "Godsent|Save")
+	bool IsSavePopupShowing() const { return SavePopup != nullptr; }
+
+	/// Fires every time a save fails (the popup is shown automatically; this is for anything extra, e.g. a HUD icon)
+	UPROPERTY(BlueprintAssignable, Category = "Godsent|Save")
+	FOnLineageSaveFailedDelegate OnSaveFailed;
+
+	/// Fires right after the save popup closes. Menus that were under it bind this and Set User Focus on their button,
+	/// so focus is never lost (e.g. WBP_MainMenu after Back on the damaged-save popup).
+	UPROPERTY(BlueprintAssignable, Category = "Godsent|Save")
+	FOnSavePopupClosedDelegate OnSavePopupClosed;
+
+	/// The main menu game mode calls this once the menu is up: if the save couldn't be read, shows the load popup.
+	/// Return Focus To: the menu that gets focus back when the popup closes.
+	void ShowLoadProblemIfAny(APlayerController* PlayerController, UUserWidget* ReturnFocusTo = nullptr);
+
+	/// Called by the save popup's buttons
+	void HandleSavePopupChoice(UGodsentSavePopupWidget* Popup, bool bPrimary);
+
+	/// Prints the lineage to the log without saving (GodsentPrintLineage)
+	void LogLineage() const;
+
 	/// Letters added, removed or swapped to turn A into B (Levenshtein distance, case-sensitive)
 	static int32 GetNameEditDistance(const FString& A, const FString& B);
 
 private:
 	void BroadcastLineageChanged();
 
+	/// Reads the save slot into LineageData and sets LoadResult
+	void LoadFromSaveSlot();
+
+	/// Writes LineageData to the save slot. False if it couldn't be written.
+	bool WriteToSaveSlot() const;
+
+	/// Makes loaded data safe to use (no negative points, valid skill tags only, name rules...)
+	void SanitiseLoadedData();
+
+	/// Runs Action now, or once the save popup closes if it's showing (used before changing level)
+	void RunWhenSaveSettled(TFunction<void()> Action);
+
+	void ShowSavePopup(APlayerController* PlayerController, EGodsentSavePopupKind Kind, bool bRepeated, UUserWidget* ReturnFocusTo = nullptr);
+	void CloseSavePopup();
+	void RunPendingActions();
+
+	/// A level change destroys any widget still on screen: forget a popup from the old level
+	void HandlePostLoadMap(UWorld* LoadedWorld);
+
 	/// Opens the level set up for this tag in the game instance's level sets, after the add-on ownership check.
 	/// False if there isn't one or it needs an add-on the player doesn't own.
 	bool OpenLevelByTag(UWorld* World, const FGameplayTag& LevelTag, FText* OutReason = nullptr) const;
 
 	FGodsentLineageData LineageData;
+
+	EGodsentSaveLoadResult LoadResult = EGodsentSaveLoadResult::NoSave;
+
+	UPROPERTY()
+	TObjectPtr<UGodsentSavePopupWidget> SavePopup;
+
+	/// What to put back when the popup closes: the focused menu widget (none = gameplay) and whether the game was paused
+	TWeakPtr<SWidget> FocusBeforePopup;
+	bool bWasPausedBeforePopup = false;
+
+	/// Set when the caller knows which menu is underneath (more reliable than FocusBeforePopup on the frame a menu opens)
+	TWeakObjectPtr<UUserWidget> ReturnFocusWidget;
+
+	/// Level changes waiting for the popup to close
+	TArray<TFunction<void()>> PendingAfterPopup;
+
+	FDelegateHandle PostLoadMapHandle;
 };
