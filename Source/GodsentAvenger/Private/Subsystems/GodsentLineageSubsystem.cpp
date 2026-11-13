@@ -8,6 +8,7 @@
 #include "Engine/World.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
+#include "GameModes/GodsentMainMenuGameMode.h"
 #include "GodsentGameInstance.h"
 #include "GodsentGameplayTags.h"
 #include "Kismet/GameplayStatics.h"
@@ -112,13 +113,14 @@ void UGodsentLineageSubsystem::CommitProgress()
 
 void UGodsentLineageSubsystem::LogLineage() const
 {
-	UE_LOG(LogTemp, Display, TEXT("[Lineage] CommitProgress: generation %d, heir '%s', %d skill point(s), %d skill(s) unlocked, level %s%s"),
+	UE_LOG(LogTemp, Display, TEXT("[Lineage] CommitProgress: generation %d, heir '%s', %d skill point(s), %d skill(s) unlocked, level %s%s%s"),
 		LineageData.Generation,
 		*LineageData.HeirName,
 		LineageData.SkillPoints,
 		LineageData.UnlockedSkills.Num(),
 		*LineageData.LastLevelTag.ToString(),
-		LineageData.bAwaitingHeirName ? TEXT(", awaiting heir name") : TEXT(""));
+		LineageData.bAwaitingHeirName ? TEXT(", awaiting heir name") : TEXT(""),
+		LineageData.bAwaitingCustomisation ? TEXT(", awaiting customisation") : TEXT(""));
 }
 
 /// Resets the lineage to a brand-new family and saves it, replacing the old family (or a damaged save)
@@ -232,12 +234,54 @@ bool UGodsentLineageSubsystem::OpenLevelByTag(UWorld* World, const FGameplayTag&
 	return true;
 }
 
+/// Customiser's Apply & Continue: (new game: wipe the old family), save the look, then open the level
+void UGodsentLineageSubsystem::ConfirmCustomisation(const UObject* WorldContextObject, const FGodsentHeirAppearance& Appearance, bool bStartNewGame)
+{
+	if (bStartNewGame)
+	{
+		LineageData = FGodsentLineageData();
+		LoadResult = EGodsentSaveLoadResult::NoSave;
+		UE_LOG(LogTemp, Display, TEXT("[Lineage] New game"));
+	}
+
+	LineageData.HeirAppearance = Appearance;
+	LineageData.HeirAppearance.bIsSet = true;
+	LineageData.bAwaitingCustomisation = false;
+
+	BroadcastLineageChanged();
+	CommitProgress();
+
+	// If that save failed, the level opens once the player has answered the popup
+	TWeakObjectPtr<const UObject> WeakContext = WorldContextObject;
+
+	RunWhenSaveSettled([this, WeakContext]()
+	{
+		if (WeakContext.IsValid())
+			OpenLastLevel(WeakContext.Get());
+	});
+}
+
+/// Try Again after a death: the main menu map opens straight on the customiser
+void UGodsentLineageSubsystem::OpenMainMenuToCustomiser(const UObject* WorldContextObject)
+{
+	bOpenCustomiserOnMenuLoad = true;
+	OpenMainMenu(WorldContextObject);
+}
+
+bool UGodsentLineageSubsystem::ConsumeCustomiserRequest()
+{
+	const bool bRequested = bOpenCustomiserOnMenuLoad;
+	bOpenCustomiserOnMenuLoad = false;
+	return bRequested;
+}
+
 /// The heir died: next generation, +1 skill point, the next heir needs a name
 void UGodsentLineageSubsystem::RecordHeirDeath()
 {
 	++LineageData.Generation;
 	++LineageData.SkillPoints;
 	LineageData.bAwaitingHeirName = true;
+	LineageData.bAwaitingCustomisation = true;
 
 	BroadcastLineageChanged();
 	CommitProgress();
@@ -406,9 +450,15 @@ void UGodsentLineageSubsystem::LoadFromSaveSlot()
 		return;
 	}
 
-	// Older versions would be upgraded here (SaveVersion < CurrentSaveVersion), once there are any
-
 	LineageData = SaveObject->Lineage;
+
+	// Version 1 had no customiser: the fields load as their defaults (no look saved, customiser still to do)
+	if (SaveObject->SaveVersion < UGodsentLineageSaveGame::FirstVersionWithCustomiser)
+	{
+		LineageData.HeirAppearance = FGodsentHeirAppearance();
+		LineageData.bAwaitingCustomisation = true;
+	}
+
 	SanitiseLoadedData();
 	LoadResult = EGodsentSaveLoadResult::Loaded;
 
@@ -461,6 +511,10 @@ void UGodsentLineageSubsystem::SanitiseLoadedData()
 
 	if (SkillRoot.IsValid())
 		LineageData.UnlockedSkills = LineageData.UnlockedSkills.Filter(FGameplayTagContainer(SkillRoot));
+
+	// Indexes past the end of the catalogue are handled where they're used (it can change between builds)
+	LineageData.HeirAppearance.PatternIndex = FMath::Max(LineageData.HeirAppearance.PatternIndex, 0);
+	LineageData.HeirAppearance.VoiceIndex = FMath::Max(LineageData.HeirAppearance.VoiceIndex, 0);
 
 	// LastLevelTag needs nothing: an unknown tag loads as empty, and Open Last Level falls back to the game map
 }
@@ -647,7 +701,13 @@ void UGodsentLineageSubsystem::HandleSavePopupChoice(UGodsentSavePopupWidget* Po
 			LoadResult = EGodsentSaveLoadResult::NoSave;
 
 			if (bPrimary)
-				StartNewGameAndOpenLevel(PlayerController);
+			{
+				// New game goes through the customiser when we're on the main menu (the family is replaced on Apply)
+				if (AGodsentMainMenuGameMode* MenuGameMode = AGodsentMainMenuGameMode::Get(PlayerController))
+					MenuGameMode->OpenCustomiser(true);
+				else
+					StartNewGameAndOpenLevel(PlayerController);
+			}
 
 			break;
 		}

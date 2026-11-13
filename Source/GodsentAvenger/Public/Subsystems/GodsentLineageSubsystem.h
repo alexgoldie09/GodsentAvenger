@@ -14,6 +14,44 @@ class UGodsentSavePopupWidget;
 class UUserWidget;
 
 /**
+ * How the current heir looks and sounds. Plain data only: the pattern and voice are indexes into the
+ * customisation catalogue (DA_Customisation), never asset references, so it can be saved as-is.
+ */
+USTRUCT(BlueprintType)
+struct FGodsentHeirAppearance
+{
+	GENERATED_BODY()
+
+	/// Main armour (Metal Colour on the metal material)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Appearance")
+	FLinearColor MainArmourColour = FLinearColor::White;
+
+	/// Secondary armour (Metal Colour on the pattern material)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Appearance")
+	FLinearColor SecondaryArmourColour = FLinearColor::White;
+
+	/// The pattern on the secondary armour (Pattern Colour on the pattern material)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Appearance")
+	FLinearColor PatternColour = FLinearColor::White;
+
+	/// Cloth (Cloth Colour on the cloth material)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Appearance")
+	FLinearColor ClothColour = FLinearColor::White;
+
+	/// Which pattern texture (index into the catalogue's Patterns)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Appearance")
+	int32 PatternIndex = 0;
+
+	/// Which voice (index into the catalogue's Voices)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Appearance")
+	int32 VoiceIndex = 0;
+
+	/// False until the player has customised. Until then the knight keeps the materials' own colours.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Appearance")
+	bool bIsSet = false;
+};
+
+/**
  * The family's progress across every heir. Plain data only (numbers, strings, tags, colours, no object references),
  * so it's written to the save game as-is (see UGodsentLineageSaveGame).
  */
@@ -38,9 +76,13 @@ struct FGodsentLineageData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, SaveGame, Category = "Lineage")
 	FString HeirName;
 
-	/// Appearance placeholder (not used yet)
+	/// How the current heir looks and sounds (set in the customiser)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, SaveGame, Category = "Lineage")
-	FLinearColor HeirAppearanceColour = FLinearColor::White;
+	FGodsentHeirAppearance HeirAppearance;
+
+	/// True from a new game or an heir's death until the next heir has been through the customiser
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, SaveGame, Category = "Lineage")
+	bool bAwaitingCustomisation = true;
 
 	/// True from an heir's death (or a new game) until the next heir is named
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, SaveGame, Category = "Lineage")
@@ -133,6 +175,28 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Godsent|Lineage")
 	bool NeedsHeirName() const { return LineageData.bAwaitingHeirName; }
 
+	// ---- Customiser ----
+
+	/// True when the next heir still has to go through the customiser (new game, or after a death)
+	UFUNCTION(BlueprintPure, Category = "Godsent|Customiser")
+	bool NeedsCustomisation() const { return LineageData.bAwaitingCustomisation; }
+
+	/// The saved look (check bIsSet: false means the player hasn't customised yet)
+	UFUNCTION(BlueprintPure, Category = "Godsent|Customiser")
+	FGodsentHeirAppearance GetHeirAppearance() const { return LineageData.HeirAppearance; }
+
+	/// The customiser's Apply & Continue. Start New Game wipes the old family first (New Game), otherwise the current
+	/// lineage carries on (Continue / Try Again). Saves the look, then opens the lineage's level.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Customiser", meta = (WorldContext = "WorldContextObject"))
+	void ConfirmCustomisation(const UObject* WorldContextObject, const FGodsentHeirAppearance& Appearance, bool bStartNewGame);
+
+	/// Try Again after a death: back to the main menu map, straight into the customiser for the next heir
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Customiser", meta = (WorldContext = "WorldContextObject"))
+	void OpenMainMenuToCustomiser(const UObject* WorldContextObject);
+
+	/// The main menu game mode asks this once: true if it should open on the customiser instead of the menu
+	bool ConsumeCustomiserRequest();
+
 	/// True for the founder (the first name is free; every later heir changes exactly one letter)
 	UFUNCTION(BlueprintPure, Category = "Godsent|Lineage")
 	bool IsNamingFounder() const { return LineageData.HeirName.IsEmpty(); }
@@ -223,6 +287,9 @@ private:
 	bool OpenLevelByTag(UWorld* World, const FGameplayTag& LevelTag, FText* OutReason = nullptr) const;
 
 	FGodsentLineageData LineageData;
+
+	/// Set by Open Main Menu To Customiser, read once by the main menu. Runtime only, never saved.
+	bool bOpenCustomiserOnMenuLoad = false;
 
 	EGodsentSaveLoadResult LoadResult = EGodsentSaveLoadResult::NoSave;
 

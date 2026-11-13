@@ -1,6 +1,7 @@
 // Alex Goldberg rights reserved
 
 #include "GodsentFunctionLibrary.h"
+#include "Components/Appearance/HeirAppearanceComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GenericTeamAgentInterface.h"
 #include "GodsentGameplayTags.h"
@@ -368,4 +369,10 @@ FText UGodsentFunctionLibrary::GetVersionScreenText()
 
 	return FText::Format(NSLOCTEXT("GodsentVersion", "VersionScreen", "Version {0}  |  {1}"),
 		FText::FromString(GetProjectVersion()), FText::FromString(Now));
+}
+
+void UGodsentFunctionLibrary::PlayHeroVoiceLine(AActor* Actor, FGameplayTag VoiceLine)
+{
+	if (UHeirAppearanceComponent* Appearance = Actor ? Actor->FindComponentByClass<UHeirAppearanceComponent>() : nullptr)
+		Appearance->PlayVoiceLine(VoiceLine);
 }

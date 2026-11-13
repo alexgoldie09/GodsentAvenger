@@ -155,7 +155,12 @@ void AGodsentBaseGameMode::RestartRun()
 
 	if (bTracksLineage)
 	{
-		Lineage->OpenLastLevel(this);
+		// The next heir picks their look first (back to the menu map's customiser), then the level opens
+		if (Lineage->NeedsCustomisation())
+			Lineage->OpenMainMenuToCustomiser(this);
+		else
+			Lineage->OpenLastLevel(this);
+
 		return;
 	}
 

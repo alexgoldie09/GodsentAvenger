@@ -13,6 +13,7 @@
 #include "InputActionValue.h"
 #include "GodsentGameplayTags.h"
 #include "AbilitySystem/GodsentAbilitySystemComponent.h"
+#include "Components/Appearance/HeirAppearanceComponent.h"
 #include "Components/Combat/HeroCombatComponent.h"
 #include "Components/Input/GodsentInputComponent.h"
 #include "Components/UI/HeroUIComponent.h"
@@ -45,6 +46,7 @@ AGodsentHeroCharacter::AGodsentHeroCharacter()
 
 	HeroCombatComponent = CreateDefaultSubobject<UHeroCombatComponent>(TEXT("HeroCombatComponent"));
 	HeroUIComponent = CreateDefaultSubobject<UHeroUIComponent>(TEXT("HeroUIComponent"));
+	HeirAppearanceComponent = CreateDefaultSubobject<UHeirAppearanceComponent>(TEXT("HeirAppearanceComponent"));
 
 	// Hidden until the Light skill is unlocked; the light ability sets its radius per tier
 	LightAuraComponent = CreateDefaultSubobject<UPointLightComponent>(TEXT("LightAuraComponent"));

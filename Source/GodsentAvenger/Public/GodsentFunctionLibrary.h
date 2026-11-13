@@ -120,4 +120,9 @@ public:
 	/// Bind a text block to it (or set it on a timer) so the clock keeps ticking.
 	UFUNCTION(BlueprintPure, Category = "Godsent|Version")
 	static FText GetVersionScreenText();
+
+	/// Plays a voice line from this actor's chosen voice (e.g. the hero, from a block or parry gameplay cue).
+	/// Nothing if the actor has no Heir Appearance component or the voice doesn't have that line.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Voice", meta = (GameplayTagFilter = "Voice"))
+	static void PlayHeroVoiceLine(AActor* Actor, FGameplayTag VoiceLine);
 };

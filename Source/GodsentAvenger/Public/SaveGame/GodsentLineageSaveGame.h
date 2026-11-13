@@ -18,8 +18,12 @@ class GODSENTAVENGER_API UGodsentLineageSaveGame : public USaveGame
 	GENERATED_BODY()
 
 public:
-	/// Bump this when FGodsentLineageData changes shape, and upgrade older saves after loading (needed for the A3 port)
-	static constexpr int32 CurrentSaveVersion = 1;
+	/// Bump this when FGodsentLineageData changes shape, and upgrade older saves after loading.
+	/// 2: heir appearance and the customiser added.
+	static constexpr int32 CurrentSaveVersion = 2;
+
+	/// Saves older than this have no heir appearance
+	static constexpr int32 FirstVersionWithCustomiser = 2;
 
 	/// The format version this save was written with
 	UPROPERTY(SaveGame)

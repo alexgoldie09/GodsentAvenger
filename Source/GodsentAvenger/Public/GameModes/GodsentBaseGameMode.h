@@ -59,8 +59,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Run")
 	void HandleRunWon();
 
-	/// Lose screen's Try Again: the main game reopens the lineage's last level (the next heir's name prompt);
-	/// a side mode (Tracks Lineage off) reopens its own level, re-checking add-on ownership
+	/// Lose screen's Try Again: the main game goes to the menu map's customiser for the next heir, then reopens the
+	/// lineage's last level (name prompt, skill tree); a side mode (Tracks Lineage off) reopens its own level, re-checking add-on ownership
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Run")
 	void RestartRun();
 

@@ -12,6 +12,7 @@ class UCameraComponent;
 class UDataAsset_InputConfig;
 class UHeroUIComponent;
 class UHeroCombatComponent;
+class UHeirAppearanceComponent;
 class UPointLightComponent;
 struct FInputActionValue;
 
@@ -60,6 +61,10 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UHeroUIComponent> HeroUIComponent;
+
+	/// The heir's look and voice (from the lineage, set in the customiser)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Appearance", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UHeirAppearanceComponent> HeirAppearanceComponent;
 
 	/// Point light around the hero for the Light skill tree. Starts hidden; colour and intensity are set in the Blueprint
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Light", meta = (AllowPrivateAccess = "true"))

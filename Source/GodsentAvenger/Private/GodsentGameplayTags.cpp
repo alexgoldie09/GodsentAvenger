@@ -151,4 +151,32 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Skill_Fervour_Healing_Heal, "Skill.Fervour.Healing.Heal");
 	UE_DEFINE_GAMEPLAY_TAG(Skill_Fervour_Healing_GreaterHeal, "Skill.Fervour.Healing.GreaterHeal");
 	UE_DEFINE_GAMEPLAY_TAG(Skill_Fervour_Healing_HeavenlyLife, "Skill.Fervour.Healing.HeavenlyLife");
+
+	/** Voice line tags (hero voice sets) **/
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Attack1, "Voice.Attack1");   // light combo swing 1
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Attack2, "Voice.Attack2");   // light combo swing 2
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Attack3, "Voice.Attack3");   // heavy / combo finisher
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Block, "Voice.Block");   // blocking a hit
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Cast, "Voice.Cast");   // casting (Prayer lines)
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Death, "Voice.Death");   // dying
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Dodge, "Voice.Dodge");   // dodging (Roll lines)
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Hit, "Voice.Hit");   // taking a hit
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Parry, "Voice.Parry");   // landing a parry
+	UE_DEFINE_GAMEPLAY_TAG(Voice_NoStamina, "Voice.NoStamina");   // out of stamina
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Sprint, "Voice.Sprint");   // starting a sprint
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Auntie, "Voice.Entry.Auntie");   // new heir's opening line
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Brother, "Voice.Entry.Brother");
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Cousin, "Voice.Entry.Cousin");
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Father, "Voice.Entry.Father");
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Husband, "Voice.Entry.Husband");
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Mother, "Voice.Entry.Mother");
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Sister, "Voice.Entry.Sister");
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Uncle, "Voice.Entry.Uncle");
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Wife, "Voice.Entry.Wife");
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Avenged, "Voice.Entry.Avenged");   // "You will be avenged"
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Boss_All, "Voice.Boss.All");   // boss fight line, any tree
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Boss_Constitution, "Voice.Boss.Constitution");
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Boss_Dexterity, "Voice.Boss.Dexterity");
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Boss_Fervour, "Voice.Boss.Fervour");
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Boss_Strength, "Voice.Boss.Strength");
 }

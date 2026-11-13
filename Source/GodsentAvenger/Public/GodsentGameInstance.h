@@ -8,6 +8,8 @@
 #include "GodsentTypes/GodsentEnumTypes.h"
 #include "GodsentGameInstance.generated.h"
 
+class UGodsentCustomisationDataAsset;
+
 class UGodsentSavePopupWidget;
 
 /// What a quality profile applies at startup
@@ -130,6 +132,10 @@ private:
 
 	EGodsentQualityProfile ActiveQualityProfile = EGodsentQualityProfile::Base;
 
+	/// What the customiser offers (patterns, voices). Create DA_Customisation and set it here.
+	UPROPERTY(EditDefaultsOnly, Category = "Customiser")
+	TObjectPtr<UGodsentCustomisationDataAsset> CustomisationCatalogue;
+
 	/// Popup for save errors (UI-07, SAV-02, SAV-03). Create WBP_SavePopup from GodsentSavePopupWidget and set it here.
 	UPROPERTY(EditDefaultsOnly, Category = "Save")
 	TSubclassOf<UGodsentSavePopupWidget> SavePopupWidgetClass;
@@ -146,6 +152,9 @@ public:
 
 	/// The save error popup class (WBP_SavePopup), shown by the lineage subsystem when a save fails or the save can't be loaded
 	TSubclassOf<UGodsentSavePopupWidget> GetSavePopupWidgetClass() const { return SavePopupWidgetClass; }
+
+	/// The customiser's catalogue (DA_Customisation)
+	UGodsentCustomisationDataAsset* GetCustomisationCatalogue() const;
 
 	/// The tag of the level set whose map is this world (works in PIE too). Empty if the map isn't in the level sets.
 	UFUNCTION(BlueprintPure)

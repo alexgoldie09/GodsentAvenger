@@ -2,6 +2,7 @@
 
 
 #include "GodsentGameInstance.h"
+#include "DataAssets/Customisation/GodsentCustomisationDataAsset.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "GameFramework/GameUserSettings.h"
@@ -164,4 +165,9 @@ FGameplayTag UGodsentGameInstance::FindLevelTagForWorld(const UWorld* World) con
 	}
 
 	return FGameplayTag();
+}
+
+UGodsentCustomisationDataAsset* UGodsentGameInstance::GetCustomisationCatalogue() const
+{
+	return CustomisationCatalogue;
 }
