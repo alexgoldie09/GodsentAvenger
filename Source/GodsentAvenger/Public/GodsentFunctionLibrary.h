@@ -87,6 +87,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Godsent|FunctionLibrary")
 	static void GetHostilePawnsInRadius(APawn* QueryPawn, FVector Origin, float Radius, TArray<APawn*>& OutHostilePawns);
 
+	/// Launches every hostile pawn within Radius away from Origin (heal release, Saintly Revival).
+	/// Strength pushes outwards, UpForce lifts. Returns how many were pushed.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|FunctionLibrary")
+	static int32 KnockbackHostilePawnsInRadius(APawn* QueryPawn, FVector Origin, float Radius, float Strength, float UpForce);
+
+	/// Width for a HUD status bar from its max value: Reference Value gives Reference Width (100 = 250 px),
+	/// so 80 gives 4/5 of it. Capped at Max Width so a big build can't run off screen.
+	UFUNCTION(BlueprintPure, Category = "Godsent|UI")
+	static float GetStatusBarWidth(float MaxValue, float ReferenceValue, float ReferenceWidth, float MaxWidth);
+
 	/// Snaps ActorToRotate (yaw only) to face TargetActor. Does nothing if either is missing or they overlap.
 	UFUNCTION(BlueprintCallable, Category = "Godsent|FunctionLibrary")
 	static void RotateActorToFaceTarget(AActor* ActorToRotate, AActor* TargetActor);

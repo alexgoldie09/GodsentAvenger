@@ -88,6 +88,10 @@ struct FGodsentLineageData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, SaveGame, Category = "Lineage")
 	bool bAwaitingHeirName = true;
 
+	/// True once the current heir has used Saintly Revival (once per heir; cleared when the next heir takes over)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, SaveGame, Category = "Lineage")
+	bool bHeirRevivalUsed = false;
+
 	/// The level the family was last in (GameData.Level.*), so Retry (and later Continue) returns there, DLC map included
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, SaveGame, Category = "Lineage", meta = (Categories = "GameData.Level"))
 	FGameplayTag LastLevelTag;
@@ -170,6 +174,16 @@ public:
 
 	/// The heir died: next generation, +1 skill point, the next heir needs a name, then commit
 	void RecordHeirDeath();
+
+	/// True once the current heir has used Saintly Revival
+	UFUNCTION(BlueprintPure, Category = "Godsent|Lineage")
+	bool HasHeirUsedRevival() const { return LineageData.bHeirRevivalUsed; }
+
+	/// Saintly Revival just happened: marks it used and saves, so quitting and continuing doesn't give it back
+	void MarkHeirRevivalUsed();
+
+	/// Debug: gives the current heir their revival back (GodsentResetRevival)
+	void DebugResetHeirRevival();
 
 	/// True when an heir has to be named before play (new game, or after a death)
 	UFUNCTION(BlueprintPure, Category = "Godsent|Lineage")

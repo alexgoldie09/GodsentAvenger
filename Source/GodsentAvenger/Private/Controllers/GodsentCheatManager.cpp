@@ -42,6 +42,14 @@ void UGodsentCheatManager::GodsentPrintLineage()
 		Lineage->LogLineage();
 }
 
+void UGodsentCheatManager::GodsentResetRevival()
+{
+	if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(GetOuterAPlayerController()))
+		Lineage->DebugResetHeirRevival();
+
+	UE_LOG(LogTemp, Warning, TEXT("GodsentResetRevival: the current heir can revive again"));
+}
+
 void UGodsentCheatManager::GodsentGrantSkillPoints(int32 Amount)
 {
 	const AGodsentHeroController* HeroController = GetHeroController();

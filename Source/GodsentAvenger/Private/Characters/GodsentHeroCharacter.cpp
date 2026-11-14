@@ -16,6 +16,7 @@
 #include "Components/Appearance/HeirAppearanceComponent.h"
 #include "Components/Combat/HeroCombatComponent.h"
 #include "Components/Input/GodsentInputComponent.h"
+#include "Components/Stamina/HeroStaminaComponent.h"
 #include "Components/UI/HeroUIComponent.h"
 #include "DataAssets/Input/DataAsset_InputConfig.h"
 #include "DataAssets/StartUpData/DataAsset_StartUpDataBase.h"
@@ -46,6 +47,7 @@ AGodsentHeroCharacter::AGodsentHeroCharacter()
 
 	HeroCombatComponent = CreateDefaultSubobject<UHeroCombatComponent>(TEXT("HeroCombatComponent"));
 	HeroUIComponent = CreateDefaultSubobject<UHeroUIComponent>(TEXT("HeroUIComponent"));
+	HeroStaminaComponent = CreateDefaultSubobject<UHeroStaminaComponent>(TEXT("HeroStaminaComponent"));
 	HeirAppearanceComponent = CreateDefaultSubobject<UHeirAppearanceComponent>(TEXT("HeirAppearanceComponent"));
 
 	// Hidden until the Light skill is unlocked; the light ability sets its radius per tier

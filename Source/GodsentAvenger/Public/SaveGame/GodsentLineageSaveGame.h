@@ -20,7 +20,8 @@ class GODSENTAVENGER_API UGodsentLineageSaveGame : public USaveGame
 public:
 	/// Bump this when FGodsentLineageData changes shape, and upgrade older saves after loading.
 	/// 2: heir appearance and the customiser added.
-	static constexpr int32 CurrentSaveVersion = 2;
+	/// 3: Saintly Revival used flag added (older saves load it as false, so nothing to upgrade).
+	static constexpr int32 CurrentSaveVersion = 3;
 
 	/// Saves older than this have no heir appearance
 	static constexpr int32 FirstVersionWithCustomiser = 2;

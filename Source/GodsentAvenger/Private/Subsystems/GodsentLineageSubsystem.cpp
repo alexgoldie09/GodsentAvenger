@@ -113,14 +113,15 @@ void UGodsentLineageSubsystem::CommitProgress()
 
 void UGodsentLineageSubsystem::LogLineage() const
 {
-	UE_LOG(LogTemp, Display, TEXT("[Lineage] CommitProgress: generation %d, heir '%s', %d skill point(s), %d skill(s) unlocked, level %s%s%s"),
+	UE_LOG(LogTemp, Display, TEXT("[Lineage] CommitProgress: generation %d, heir '%s', %d skill point(s), %d skill(s) unlocked, level %s%s%s%s"),
 		LineageData.Generation,
 		*LineageData.HeirName,
 		LineageData.SkillPoints,
 		LineageData.UnlockedSkills.Num(),
 		*LineageData.LastLevelTag.ToString(),
 		LineageData.bAwaitingHeirName ? TEXT(", awaiting heir name") : TEXT(""),
-		LineageData.bAwaitingCustomisation ? TEXT(", awaiting customisation") : TEXT(""));
+		LineageData.bAwaitingCustomisation ? TEXT(", awaiting customisation") : TEXT(""),
+		LineageData.bHeirRevivalUsed ? TEXT(", revival used") : TEXT(""));
 }
 
 /// Resets the lineage to a brand-new family and saves it, replacing the old family (or a damaged save)
@@ -282,9 +283,24 @@ void UGodsentLineageSubsystem::RecordHeirDeath()
 	++LineageData.SkillPoints;
 	LineageData.bAwaitingHeirName = true;
 	LineageData.bAwaitingCustomisation = true;
+	LineageData.bHeirRevivalUsed = false; // The next heir gets their own
 
 	BroadcastLineageChanged();
 	CommitProgress();
+}
+
+void UGodsentLineageSubsystem::MarkHeirRevivalUsed()
+{
+	LineageData.bHeirRevivalUsed = true;
+
+	BroadcastLineageChanged();
+	CommitProgress();
+}
+
+void UGodsentLineageSubsystem::DebugResetHeirRevival()
+{
+	LineageData.bHeirRevivalUsed = false;
+	BroadcastLineageChanged();
 }
 
 bool UGodsentLineageSubsystem::ValidateHeirName(const FString& ProposedName, FText& OutReason) const

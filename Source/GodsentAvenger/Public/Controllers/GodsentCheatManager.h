@@ -32,6 +32,10 @@ public:
 	UFUNCTION(Exec)
 	void GodsentPrintLineage();
 
+	/// Gives the current heir their Saintly Revival back, e.g. "GodsentResetRevival"
+	UFUNCTION(Exec)
+	void GodsentResetRevival();
+
 	/// Adds skill points, e.g. "GodsentGrantSkillPoints 24"
 	UFUNCTION(Exec)
 	void GodsentGrantSkillPoints(int32 Amount);

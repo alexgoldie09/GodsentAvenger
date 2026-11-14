@@ -33,6 +33,8 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Dodge_Takeoff, "Player.Event.Dodge.Takeoff");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Heal_Release, "Player.Event.Heal.Release");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Heal_HoldPoint, "Player.Event.Heal.HoldPoint");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Revive, "Player.Event.Revive");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Revive_Rise, "Player.Event.Revive.Rise");
 
 	/** Player Ability Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Player_Ability_Equip_Sword, "Player.Ability.Equip.Sword");
@@ -61,9 +63,14 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Casting, "Player.Status.Casting");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_RiposteWindow, "Player.Status.RiposteWindow");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_LightActive, "Player.Status.LightActive");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_StaminaRegenDelayed, "Player.Status.StaminaRegenDelayed");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Reviving, "Player.Status.Reviving");
 
 	/** Player Passive Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Player_Passive_HitStun, "Player.Passive.HitStun");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Passive_Cleave, "Player.Passive.Cleave");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Passive_ImmortalVigor, "Player.Passive.ImmortalVigor");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Passive_SaintlyRevival, "Player.Passive.SaintlyRevival");
 
 	/** Player Set By Caller Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Player_SetByCaller_AttackType_Light, "Player.SetByCaller.AttackType.Light");
@@ -106,6 +113,7 @@ namespace GodsentGameplayTags
 	
 	/** Shared Effect Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Effect_HitStun, "Shared.Effect.HitStun");
+	UE_DEFINE_GAMEPLAY_TAG(Shared_Effect_IgnoreRevival, "Shared.Effect.IgnoreRevival");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Effect_IgnoreDefense, "Shared.Effect.IgnoreDefense");
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Effect_Melee, "Shared.Effect.Melee");
 

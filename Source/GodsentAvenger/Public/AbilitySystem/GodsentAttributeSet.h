@@ -24,6 +24,10 @@ class IPawnUIInterface;
  *  - PreAttributeChange:       clamps every current-value change (including Infinite passive effects)
  *  - PostAttributeChange:      lowers current values when a max drops, and refreshes the health/stamina bars
  *  - PostGameplayEffectExecute: clamps base values after Instant/periodic effects, applies DamageTaken, adds the Dead tag
+ *
+ * Hero skills handled here:
+ *  - Immortal Vigor (Player.Passive.ImmortalVigor): current stamina is held at max
+ *  - Saintly Revival (Player.Passive.SaintlyRevival): the first death of an heir starts the revive ability instead
  */
 UCLASS()
 class GODSENTAVENGER_API UGodsentAttributeSet : public UAttributeSet
@@ -62,6 +66,11 @@ public:
 	FGameplayAttributeData StaminaRegen;
 	ATTRIBUTE_ACCESSORS(UGodsentAttributeSet, StaminaRegen)
 
+	/// Seconds after spending stamina before it starts coming back (read by the hero's stamina component)
+	UPROPERTY(BlueprintReadOnly, Category = "Stamina")
+	FGameplayAttributeData StaminaRegenDelay;
+	ATTRIBUTE_ACCESSORS(UGodsentAttributeSet, StaminaRegenDelay)
+
 	/** Combat **/
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	FGameplayAttributeData AttackPower;
@@ -97,6 +106,12 @@ private:
 
 	/// Sends the current stamina percentage to the hero's UI component
 	void BroadcastStaminaPercent();
+
+	/// True when the owner has this tag (skill passives)
+	bool OwnerHasTag(const FGameplayTag& Tag) const;
+
+	/// Saintly Revival: starts the revive ability instead of dying. False means die as normal.
+	bool TryStartRevival(AActor* AvatarActor);
 	
 	/// Plays damage feedback and, if the hit carries hit stun, sends the stagger event
 	void HandleDamageReactions(const FGameplayEffectModCallbackData& Data, float DamageDone);

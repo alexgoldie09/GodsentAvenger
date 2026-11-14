@@ -11,6 +11,7 @@
 #include "Engine/Engine.h"
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
+#include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "GodsentTypes/GodsentCountDownAction.h"
@@ -262,6 +263,43 @@ void UGodsentFunctionLibrary::GetHostilePawnsInRadius(APawn* QueryPawn, FVector 
 
 		OutHostilePawns.Add(OverlappedPawn);
 	}
+}
+
+/// Pushes hostiles away from Origin, flat outwards plus a lift
+int32 UGodsentFunctionLibrary::KnockbackHostilePawnsInRadius(APawn* QueryPawn, FVector Origin, float Radius, float Strength, float UpForce)
+{
+	TArray<APawn*> HostilePawns;
+	GetHostilePawnsInRadius(QueryPawn, Origin, Radius, HostilePawns);
+
+	int32 PushedCount = 0;
+
+	for (APawn* HostilePawn : HostilePawns)
+	{
+		ACharacter* HostileCharacter = Cast<ACharacter>(HostilePawn);
+
+		if (!HostileCharacter)
+			continue;
+
+		FVector Away = (HostileCharacter->GetActorLocation() - Origin).GetSafeNormal2D();
+
+		// Standing right on the origin: push them the way they're facing
+		if (Away.IsNearlyZero())
+			Away = -HostileCharacter->GetActorForwardVector();
+
+		HostileCharacter->LaunchCharacter(Away * Strength + FVector::UpVector * UpForce, true, true);
+		++PushedCount;
+	}
+
+	return PushedCount;
+}
+
+float UGodsentFunctionLibrary::GetStatusBarWidth(float MaxValue, float ReferenceValue, float ReferenceWidth, float MaxWidth)
+{
+	if (ReferenceValue <= 0.f)
+		return ReferenceWidth;
+
+	const float Width = MaxValue / ReferenceValue * ReferenceWidth;
+	return MaxWidth > 0.f ? FMath::Min(Width, MaxWidth) : Width;
 }
 
 /// Snaps ActorToRotate (yaw only) to face TargetActor

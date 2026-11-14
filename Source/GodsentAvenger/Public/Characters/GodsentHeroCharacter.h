@@ -13,6 +13,7 @@ class UDataAsset_InputConfig;
 class UHeroUIComponent;
 class UHeroCombatComponent;
 class UHeirAppearanceComponent;
+class UHeroStaminaComponent;
 class UPointLightComponent;
 struct FInputActionValue;
 
@@ -38,6 +39,8 @@ public:
 
 	FORCEINLINE UHeroCombatComponent* GetHeroCombatComponent() const { return HeroCombatComponent; }
 
+	FORCEINLINE UHeroStaminaComponent* GetHeroStaminaComponent() const { return HeroStaminaComponent; }
+
 	/// The Light skill's aura (hidden until the light ability turns it on)
 	UFUNCTION(BlueprintPure, Category = "Light")
 	UPointLightComponent* GetLightAuraComponent() const { return LightAuraComponent; }
@@ -61,6 +64,10 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UHeroUIComponent> HeroUIComponent;
+
+	/// Stamina regen delay and Immortal Vigor
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stamina", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UHeroStaminaComponent> HeroStaminaComponent;
 
 	/// The heir's look and voice (from the lineage, set in the customiser)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Appearance", meta = (AllowPrivateAccess = "true"))
