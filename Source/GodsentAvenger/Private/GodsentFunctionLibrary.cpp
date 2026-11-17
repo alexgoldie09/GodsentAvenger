@@ -12,6 +12,11 @@
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
+#include "EnhancedInputSubsystems.h"
+#include "Engine/LocalPlayer.h"
+#include "GameFramework/PlayerController.h"
+#include "InputAction.h"
+#include "InputMappingContext.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "GodsentTypes/GodsentCountDownAction.h"
@@ -291,6 +296,38 @@ int32 UGodsentFunctionLibrary::KnockbackHostilePawnsInRadius(APawn* QueryPawn, F
 	}
 
 	return PushedCount;
+}
+
+FKey UGodsentFunctionLibrary::GetBoundKeyForInputAction(const APlayerController* PlayerController, const UInputAction* Action,
+	bool bPreferGamepad, const UInputMappingContext* FallbackContext)
+{
+	if (!Action)
+		return EKeys::Invalid;
+
+	TArray<FKey> BoundKeys;
+
+	// The player's live mappings (these follow any rebinding)
+	if (const ULocalPlayer* LocalPlayer = PlayerController ? PlayerController->GetLocalPlayer() : nullptr)
+		if (const UEnhancedInputLocalPlayerSubsystem* InputSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer))
+			BoundKeys = InputSubsystem->QueryKeysMappedToAction(Action);
+
+	// Nothing applied right now: read the mapping context asset instead
+	if (BoundKeys.IsEmpty() && FallbackContext)
+	{
+		for (const FEnhancedActionKeyMapping& Mapping : FallbackContext->GetMappings())
+		{
+			if (Mapping.Action == Action)
+				BoundKeys.AddUnique(Mapping.Key);
+		}
+	}
+
+	for (const FKey& Key : BoundKeys)
+	{
+		if (Key.IsGamepadKey() == bPreferGamepad)
+			return Key;
+	}
+
+	return BoundKeys.IsEmpty() ? EKeys::Invalid : BoundKeys[0];
 }
 
 float UGodsentFunctionLibrary::GetStatusBarWidth(float MaxValue, float ReferenceValue, float ReferenceWidth, float MaxWidth)

@@ -5,13 +5,17 @@
 #include "CoreMinimal.h"
 #include "GameplayEffectTypes.h"
 #include "GameplayTagContainer.h"
+#include "InputCoreTypes.h"
 #include "ScalableFloat.h"
 #include "Engine/LatentActionManager.h"
 #include "GodsentTypes/GodsentEnumTypes.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "GodsentFunctionLibrary.generated.h"
 
+class APlayerController;
 class UGodsentGameInstance;
+class UInputAction;
+class UInputMappingContext;
 class UGodsentAbilitySystemComponent;
 class UPawnCombatComponent;
 
@@ -91,6 +95,12 @@ public:
 	/// Strength pushes outwards, UpForce lifts. Returns how many were pushed.
 	UFUNCTION(BlueprintCallable, Category = "Godsent|FunctionLibrary")
 	static int32 KnockbackHostilePawnsInRadius(APawn* QueryPawn, FVector Origin, float Radius, float Strength, float UpForce);
+
+	/// The key bound to an Input Action right now, for button glyphs. Looks at the player's active mappings first
+	/// (so rebinding later is picked up), then Fallback Context. Prefers a gamepad button when bPreferGamepad is set.
+	/// Invalid if nothing is bound.
+	UFUNCTION(BlueprintPure, Category = "Godsent|Input")
+	static FKey GetBoundKeyForInputAction(const APlayerController* PlayerController, const UInputAction* Action, bool bPreferGamepad, const UInputMappingContext* FallbackContext);
 
 	/// Width for a HUD status bar from its max value: Reference Value gives Reference Width (100 = 250 px),
 	/// so 80 gives 4/5 of it. Capped at Max Width so a big build can't run off screen.
