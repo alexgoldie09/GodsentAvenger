@@ -29,7 +29,7 @@ void UAnimNotifyState_HeroTrail::NotifyBegin(USkeletalMeshComponent* MeshComp, U
 	{
 		// World space: the trail is placed from the blade every frame
 		TrailComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(MeshComp, CleaveTrail, MeshComp->GetComponentLocation(),
-			FRotator::ZeroRotator, FVector::OneVector, true, false);
+			FRotator::ZeroRotator, FVector::OneVector, true, false, TrailPoolMethod);
 
 		if (TrailComponent)
 		{
@@ -41,7 +41,7 @@ void UAnimNotifyState_HeroTrail::NotifyBegin(USkeletalMeshComponent* MeshComp, U
 	else if (Trail)
 	{
 		TrailComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(Trail, MeshComp, SocketName, LocationOffset, RotationOffset,
-			EAttachLocation::KeepRelativeOffset, true);
+			EAttachLocation::KeepRelativeOffset, true, true, TrailPoolMethod);
 	}
 
 	if (TrailComponent)

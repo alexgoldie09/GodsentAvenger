@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
+#include "NiagaraComponentPoolMethodEnum.h"
 #include "AnimNotifyState_HeroTrail.generated.h"
 
 class UNiagaraComponent;
@@ -52,6 +53,10 @@ public:
 	/// Untick on montages that never cleave (the riposte)
 	UPROPERTY(EditAnywhere, Category = "Cleave")
 	bool bCanShowCleave = true;
+
+	/// Reuse trail components instead of making a new one every swing (Auto Release hands it back once it's faded)
+	UPROPERTY(EditAnywhere, Category = "Trail")
+	ENCPoolMethod TrailPoolMethod = ENCPoolMethod::AutoRelease;
 
 	UPROPERTY(EditAnywhere, Category = "Cleave|Parameters")
 	FName BladeMidParameter = TEXT("BladeMid");

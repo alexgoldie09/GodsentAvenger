@@ -149,6 +149,9 @@ private:
 
 	bool bCleaveSwing = false;
 	bool bWeaponCollisionOn = false;
+
+	/// One hit pause per swing, however many enemies it catches (a cleave through three would freeze three times)
+	bool bHitPauseSentThisSwing = false;
 	float CleaveExtraLength = 0.f;
 	float CleaveWidth = 0.f;
 	float CleaveGlowAlpha = 0.f;

@@ -71,6 +71,12 @@ void UHeroCombatComponent::OnHitTargetActor(AActor* HitActor)
 		GodsentGameplayTags::Shared_Event_MeleeHit,
 		EventData);
 
+	// Only the first enemy of a swing pauses; the rest just take the hit
+	if (bHitPauseSentThisSwing)
+		return;
+
+	bHitPauseSentThisSwing = true;
+
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
 		GetOwningPawn(),
 		GodsentGameplayTags::Player_Event_HitPause,
@@ -176,6 +182,7 @@ void UHeroCombatComponent::ToggleCurrentEquippedWeaponCollision(bool bShouldEnab
 
 	bWeaponCollisionOn = bShouldEnable;
 	bHasPreviousBlade = false; // Each hit window starts its own sweep
+	bHitPauseSentThisSwing = false; // And can pause once
 	RefreshTickEnabled();
 }
 
