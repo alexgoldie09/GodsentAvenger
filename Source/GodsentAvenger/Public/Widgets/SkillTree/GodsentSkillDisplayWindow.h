@@ -34,7 +34,7 @@ public:
 	/// Fills the window from a skill and shows it (the scroll goes back to the top)
 	void ShowSkill(const FGodsentSkillNode& SkillNode);
 
-	/// Hides the window but keeps its space, so the tree doesn't shift
+	/// Hides the window but keeps its space, so the tree doesn't shift (after Hide Delay, so a fade-out can play)
 	UFUNCTION(BlueprintCallable, Category = "Godsent|SkillTree")
 	void HideWindow();
 
@@ -52,6 +52,7 @@ public:
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	/// The window just opened (fade in here if you like)
 	UFUNCTION(BlueprintImplementableEvent, Category = "Display Window", meta = (DisplayName = "On Window Shown"))
@@ -77,6 +78,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Display Window")
 	TObjectPtr<UTexture2D> FallbackIcon;
 
+	/// Seconds the window stays drawn after On Window Hidden, so a fade-out animation can finish (match its length)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Display Window", meta = (ClampMin = "0.0", Units = "s"))
+	float HideDelay = 0.f;
+
 	/// Token (without brackets) → the action whose button it shows, e.g. Block → IA_Block
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Glyphs")
 	TMap<FName, TObjectPtr<UInputAction>> GlyphTokenActions;
@@ -94,6 +99,11 @@ private:
 	void ApplyIcon(UTexture2D* Texture);
 
 	bool bShowingSkill = false;
+
+	/// Counts down Hide Delay before the window is actually hidden
+	float HideTimeRemaining = 0.f;
+
+	void FinishHiding();
 
 	TSharedPtr<FStreamableHandle> IconLoadHandle;
 };

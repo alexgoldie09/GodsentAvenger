@@ -23,8 +23,10 @@ void UGodsentSkillDisplayWindow::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	// Nothing is focused yet
-	HideWindow();
+	// Nothing is focused yet: hidden straight away, no fade
+	bShowingSkill = false;
+	HideTimeRemaining = 0.f;
+	FinishHiding();
 }
 
 void UGodsentSkillDisplayWindow::NativeDestruct()
@@ -54,6 +56,7 @@ void UGodsentSkillDisplayWindow::ShowSkill(const FGodsentSkillNode& SkillNode)
 
 	const bool bWasShowing = bShowingSkill;
 	bShowingSkill = true;
+	HideTimeRemaining = 0.f; // A fade-out in progress is cancelled
 
 	// Not hit-testable itself, but the scroll box inside still takes the mouse wheel
 	SetVisibility(ESlateVisibility::SelfHitTestInvisible);
@@ -64,14 +67,36 @@ void UGodsentSkillDisplayWindow::ShowSkill(const FGodsentSkillNode& SkillNode)
 
 void UGodsentSkillDisplayWindow::HideWindow()
 {
-	const bool bWasShowing = bShowingSkill;
+	if (!bShowingSkill)
+		return;
+
 	bShowingSkill = false;
+	BP_OnWindowHidden();
 
-	// Hidden, not Collapsed: the window keeps its space so the tree beside it doesn't resize
+	// Stay drawn while the fade-out plays
+	if (HideDelay > 0.f)
+		HideTimeRemaining = HideDelay;
+	else
+		FinishHiding();
+}
+
+void UGodsentSkillDisplayWindow::FinishHiding()
+{
+	// Hidden, not Collapsed: the window keeps its space so nothing around it moves
 	SetVisibility(ESlateVisibility::Hidden);
+}
 
-	if (bWasShowing)
-		BP_OnWindowHidden();
+void UGodsentSkillDisplayWindow::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	if (HideTimeRemaining <= 0.f)
+		return;
+
+	HideTimeRemaining -= InDeltaTime;
+
+	if (HideTimeRemaining <= 0.f && !bShowingSkill)
+		FinishHiding();
 }
 
 void UGodsentSkillDisplayWindow::ScrollDescription(float Pixels)

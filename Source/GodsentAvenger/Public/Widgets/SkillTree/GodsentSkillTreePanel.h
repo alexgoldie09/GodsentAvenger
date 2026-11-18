@@ -19,12 +19,16 @@ class UGodsentSkillNodeWidget;
  * The whole skill tree (WBP_SkillTreePanel), used by both the safe zone skill tree and the rebirth skill tree.
  *
  * Every WBP_SkillNode and WBP_SkillConnector placed directly on TreeCanvas is found automatically:
- *  - lines are placed between their From and To nodes (CentreAnchor when From is empty), in the designer too
- *  - nodes and lines follow the hero controller's skill tree (state, glow, skill points)
+ *  - veins are placed by hand; only ones with Auto Place Between Nodes are stretched between their From and To
+ *  - nodes and veins follow the hero controller's skill tree (state, glow, skill points); a vein's glow flows out
+ *    when a skill is bought, and shows the current state straight away when the screen opens
  *  - the focused node fills the display window; it hides when focus leaves the tree
  *  - the right stick scrolls the description
  *
  * Anything on TreeCanvas uses canvas positions in Tree Design Size (the Size Box around the canvas must match).
+ *
+ * Focusing the panel itself passes focus on to the last node used (or Initial Focus Skill), so a screen only has to
+ * focus the panel: set it as the screen's Desired Focus Widget, or Set User Focus on it.
  */
 UCLASS(Abstract)
 class GODSENTAVENGER_API UGodsentSkillTreePanel : public UUserWidget
@@ -32,7 +36,7 @@ class GODSENTAVENGER_API UGodsentSkillTreePanel : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	/// Focuses Initial Focus Skill (or the first node). Call it when the screen opens.
+	/// Focuses the last node used, or Initial Focus Skill, or the first visible node
 	UFUNCTION(BlueprintCallable, Category = "Godsent|SkillTree")
 	void FocusInitialNode();
 
@@ -55,6 +59,8 @@ public:
 	bool TryUnlockNode(UGodsentSkillNodeWidget* Node);
 
 protected:
+	virtual void NativeOnInitialized() override;
+	virtual FReply NativeOnFocusReceived(const FGeometry& InGeometry, const FFocusEvent& InFocusEvent) override;
 	virtual void NativePreConstruct() override;
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
@@ -81,13 +87,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Tree")
 	FText PointsFormat = NSLOCTEXT("SkillTree", "PointsFormat", "Skill Points: {Points}");
 
-	/// Size of the canvas the tree is laid out on. Must match the Size Box around TreeCanvas.
+	/// Size of the canvas the tree is laid out on (Joel's full-screen layout). Must match the Size Box around TreeCanvas.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Tree")
-	FVector2D TreeDesignSize = FVector2D(1000.f, 1000.f);
+	FVector2D TreeDesignSize = FVector2D(1920.f, 1080.f);
 
-	/// The node focused when the screen opens (empty = the first node found)
+	/// The node focused when the screen opens (empty = the first visible node found)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Tree", meta = (Categories = "Skill"))
 	FGameplayTag InitialFocusSkill;
+
+	/// Focus a node one frame after the panel opens (after the screen and controller have set their own focus).
+	/// On for the rebirth tree. Off for the pause screen page, which is built before it's shown: call Focus Initial Node there.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Tree")
+	bool bFocusOnOpen = false;
 
 	/// Lines draw under everything else on the canvas
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Tree")
@@ -113,6 +124,9 @@ private:
 	/// Shows the focused node in the display window, or hides it
 	void RefreshDisplayWindow();
 
+	/// The node to focus when the panel gets focus: the last one used, or Initial Focus Skill, or the first visible one
+	UGodsentSkillNodeWidget* GetNodeToFocus() const;
+
 	UFUNCTION()
 	void HandleSkillUnlocked(FGameplayTag SkillTag);
 
@@ -131,6 +145,18 @@ private:
 	TWeakObjectPtr<USkillTreeComponent> BoundSkillTree;
 	TWeakObjectPtr<UGodsentSkillNodeWidget> FocusedNode;
 
+	/// Kept after focus leaves the tree, so coming back lands where you were
+	TWeakObjectPtr<UGodsentSkillNodeWidget> LastFocusedNode;
+
+	/// Focus On Open waiting for the first tick
+	bool bFocusPending = false;
+
+	/// A node lost focus: hide the window next tick unless another node took it (moving between nodes)
+	bool bHideCheckPending = false;
+
 	/// Last right stick Y value (analog events only arrive when it changes)
 	float RightStickY = 0.f;
+
+	/// False until the first refresh after opening, so veins show their state without replaying old unlocks
+	bool bInitialRefreshDone = false;
 };

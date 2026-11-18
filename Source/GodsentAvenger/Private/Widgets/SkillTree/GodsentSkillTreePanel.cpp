@@ -21,6 +21,30 @@ namespace
 	const FAnchors TopLeftAnchor(0.f, 0.f);
 }
 
+void UGodsentSkillTreePanel::NativeOnInitialized()
+{
+	Super::NativeOnInitialized();
+
+	// The panel takes focus only to hand it to a node
+	SetIsFocusable(true);
+}
+
+/// A screen focused the panel: pass it straight on to a node
+FReply UGodsentSkillTreePanel::NativeOnFocusReceived(const FGeometry& InGeometry, const FFocusEvent& InFocusEvent)
+{
+	const UGodsentSkillNodeWidget* Node = GetNodeToFocus();
+	UWidget* FocusTarget = Node ? Node->GetFocusTarget() : nullptr;
+
+	if (FocusTarget)
+	{
+		UE_LOG(LogTemp, Display, TEXT("[SkillTree] Panel got focus, passing it to %s"), *Node->GetName());
+		return FReply::Handled().SetUserFocus(FocusTarget->TakeWidget(), InFocusEvent.GetCause());
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[SkillTree] Panel got focus but has no visible node (%d found)"), Nodes.Num());
+	return Super::NativeOnFocusReceived(InGeometry, InFocusEvent);
+}
+
 void UGodsentSkillTreePanel::NativePreConstruct()
 {
 	Super::NativePreConstruct();
@@ -36,6 +60,7 @@ void UGodsentSkillTreePanel::NativeConstruct()
 
 	GatherTreeWidgets();
 	LayoutConnectors();
+	bInitialRefreshDone = false;
 
 	if (USkillTreeComponent* SkillTree = GetSkillTree())
 	{
@@ -46,6 +71,9 @@ void UGodsentSkillTreePanel::NativeConstruct()
 
 	RefreshTree();
 	RefreshDisplayWindow();
+
+	// Widgets tick while paused, so this still runs behind the rebirth pause
+	bFocusPending = bFocusOnOpen;
 }
 
 void UGodsentSkillTreePanel::NativeDestruct()
@@ -89,7 +117,11 @@ void UGodsentSkillTreePanel::LayoutConnectors()
 {
 	for (UGodsentSkillConnectorWidget* Connector : Connectors)
 	{
-		UCanvasPanelSlot* ConnectorSlot = Connector ? Cast<UCanvasPanelSlot>(Connector->Slot) : nullptr;
+		// Veins are placed by hand; only straight lines are positioned here
+		if (!Connector || !Connector->bAutoPlaceBetweenNodes)
+			continue;
+
+		UCanvasPanelSlot* ConnectorSlot = Cast<UCanvasPanelSlot>(Connector->Slot);
 
 		if (!ConnectorSlot)
 			continue;
@@ -155,13 +187,38 @@ UGodsentSkillNodeWidget* UGodsentSkillTreePanel::FindNode(const FGameplayTag& Sk
 
 void UGodsentSkillTreePanel::FocusInitialNode()
 {
+	UGodsentSkillNodeWidget* Node = GetNodeToFocus();
+
+	if (!Node)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[SkillTree] %s has no visible node to focus (%d nodes found on TreeCanvas)"), *GetName(), Nodes.Num());
+		return;
+	}
+
+	UE_LOG(LogTemp, Display, TEXT("[SkillTree] Focusing %s (%s)"), *Node->GetName(), *Node->SkillTag.ToString());
+	Node->FocusNode();
+}
+
+UGodsentSkillNodeWidget* UGodsentSkillTreePanel::GetNodeToFocus() const
+{
+	// Back where you left off
+	if (UGodsentSkillNodeWidget* LastNode = LastFocusedNode.Get())
+		if (LastNode->IsVisible())
+			return LastNode;
+
 	UGodsentSkillNodeWidget* Node = FindNode(InitialFocusSkill);
 
-	if (!Node && Nodes.Num() > 0)
-		Node = Nodes[0];
+	if (Node && Node->IsVisible())
+		return Node;
 
-	if (Node)
-		Node->FocusNode();
+	// Otherwise the first node that's showing (the hidden heart node is collapsed)
+	for (UGodsentSkillNodeWidget* Candidate : Nodes)
+	{
+		if (Candidate && Candidate->IsVisible())
+			return Candidate;
+	}
+
+	return nullptr;
 }
 
 void UGodsentSkillTreePanel::RefreshTree()
@@ -177,12 +234,14 @@ void UGodsentSkillTreePanel::RefreshTree()
 			Node->RefreshNode(SkillTree);
 	}
 
-	// A line glows once the skill at its end is owned
+	// The first refresh shows what's already owned; after that, new unlocks flow out
 	for (UGodsentSkillConnectorWidget* Connector : Connectors)
 	{
 		if (Connector)
-			Connector->SetGlowing(SkillTree->IsSkillUnlocked(Connector->ToSkillTag));
+			Connector->RefreshGlow(SkillTree, bInitialRefreshDone);
 	}
+
+	bInitialRefreshDone = true;
 
 	if (PointsText)
 	{
@@ -195,12 +254,21 @@ void UGodsentSkillTreePanel::RefreshTree()
 void UGodsentSkillTreePanel::NotifyNodeFocusChanged(UGodsentSkillNodeWidget* Node, bool bFocused)
 {
 	if (bFocused)
+	{
 		FocusedNode = Node;
-	else if (FocusedNode.Get() == Node)
-		FocusedNode.Reset();
+		LastFocusedNode = Node;
+		bHideCheckPending = false;
+		RefreshDisplayWindow();
+		return;
+	}
 
-	// Moving between nodes loses and gains focus in the same frame, so the window never flickers
-	RefreshDisplayWindow();
+	// Moving between nodes drops focus a moment before the next node gets it,
+	// so wait a tick before deciding the window should go
+	if (FocusedNode.Get() == Node)
+	{
+		FocusedNode.Reset();
+		bHideCheckPending = true;
+	}
 }
 
 bool UGodsentSkillTreePanel::TryUnlockNode(UGodsentSkillNodeWidget* Node)
@@ -229,6 +297,21 @@ void UGodsentSkillTreePanel::RefreshDisplayWindow()
 void UGodsentSkillTreePanel::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	if (bFocusPending)
+	{
+		bFocusPending = false;
+		FocusInitialNode();
+	}
+
+	// Focus really left the tree (no node picked it up)
+	if (bHideCheckPending)
+	{
+		bHideCheckPending = false;
+
+		if (!FocusedNode.IsValid())
+			RefreshDisplayWindow();
+	}
 
 	// Pushing up scrolls up
 	if (DisplayWindow && FMath::Abs(RightStickY) > StickDeadZone)

@@ -51,10 +51,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Godsent|SkillTree")
 	EGodsentSkillState GetSkillState() const { return CurrentState; }
 
+	/// The widget that actually takes focus (NodeButton)
+	UWidget* GetFocusTarget() const;
+
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativePreConstruct() override;
 	virtual void NativeDestruct() override;
+	virtual FReply NativeOnFocusReceived(const FGeometry& InGeometry, const FFocusEvent& InFocusEvent) override;
 	virtual void NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent) override;
 	virtual void NativeOnRemovedFromFocusPath(const FFocusEvent& InFocusEvent) override;
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;

@@ -81,11 +81,27 @@ void UGodsentSkillNodeWidget::FocusNode()
 		NodeButton->SetKeyboardFocus();
 }
 
+/// The node itself got focus (e.g. navigation picked it): hand it to the button, so Enter / Cross presses it
+FReply UGodsentSkillNodeWidget::NativeOnFocusReceived(const FGeometry& InGeometry, const FFocusEvent& InFocusEvent)
+{
+	if (NodeButton)
+		return FReply::Handled().SetUserFocus(NodeButton->TakeWidget(), InFocusEvent.GetCause());
+
+	return Super::NativeOnFocusReceived(InGeometry, InFocusEvent);
+}
+
+UWidget* UGodsentSkillNodeWidget::GetFocusTarget() const
+{
+	return NodeButton;
+}
+
 void UGodsentSkillNodeWidget::NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent)
 {
 	Super::NativeOnAddedToFocusPath(InFocusEvent);
 
 	BP_OnNodeFocusChanged(true);
+
+	UE_LOG(LogTemp, Verbose, TEXT("[SkillTree] %s focused"), *GetName());
 
 	if (UGodsentSkillTreePanel* Panel = OwningPanel.Get())
 		Panel->NotifyNodeFocusChanged(this, true);
