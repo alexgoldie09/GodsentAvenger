@@ -17,6 +17,11 @@ namespace
 	/// [Block] in a description becomes the Block button's glyph
 	const TCHAR* const GlyphTokenOpen = TEXT("[");
 	const TCHAR* const GlyphTokenClose = TEXT("]");
+
+	/// Skill tags go Skill.Tree.Branch.Name
+	const TCHAR* const SkillTagSeparator = TEXT(".");
+	constexpr int32 SkillTagTreeIndex = 1;
+	constexpr int32 SkillTagBranchIndex = 2;
 }
 
 void UGodsentSkillDisplayWindow::NativeConstruct()
@@ -42,6 +47,9 @@ void UGodsentSkillDisplayWindow::ShowSkill(const FGodsentSkillNode& SkillNode)
 {
 	if (TitleText)
 		TitleText->SetText(SkillNode.DisplayName);
+
+	if (CategoryText)
+		CategoryText->SetText(GetCategoryLabel(SkillNode.SkillTag));
 
 	if (DescriptionText)
 		DescriptionText->SetText(FormatGlyphTokens(SkillNode.Description));
@@ -150,6 +158,26 @@ FText UGodsentSkillDisplayWindow::FormatGlyphTokens(const FText& InText) const
 	}
 
 	return FText::FromString(Result);
+}
+
+FText UGodsentSkillDisplayWindow::GetCategoryLabel(const FGameplayTag& SkillTag) const
+{
+	TArray<FString> TagParts;
+	SkillTag.ToString().ParseIntoArray(TagParts, SkillTagSeparator);
+
+	// Not a Skill.Tree.Branch.Name tag: leave the line empty
+	if (!TagParts.IsValidIndex(SkillTagBranchIndex))
+		return FText::GetEmpty();
+
+	// WeaponWielding → Weapon Wielding
+	const FString Tree = FName::NameToDisplayString(TagParts[SkillTagTreeIndex], false);
+	const FString Branch = FName::NameToDisplayString(TagParts[SkillTagBranchIndex], false);
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Tree"), FText::FromString(Tree));
+	Args.Add(TEXT("Branch"), FText::FromString(Branch));
+
+	return FText::Format(CategoryFormat, Args);
 }
 
 void UGodsentSkillDisplayWindow::LoadIcon(const TSoftObjectPtr<UTexture2D>& Icon)

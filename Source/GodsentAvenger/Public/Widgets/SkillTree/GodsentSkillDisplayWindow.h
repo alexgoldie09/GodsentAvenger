@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "GameplayTagContainer.h"
 #include "GodsentSkillDisplayWindow.generated.h"
 
 class UImage;
@@ -24,6 +25,9 @@ struct FStreamableHandle;
  * Glyph Token Actions maps each token to an Input Action. The key bound to that action right now is looked up and
  * shown as <img id="KeyName"/>, e.g. <img id="Gamepad_LeftShoulder"/>. Rebinding later just changes the key it finds.
  * The rich text's image decorator table has one row per key, named after the key.
+ *
+ * Category Text (optional) shows the skill's tree and branch, read from its tag:
+ * Skill.Strength.WeaponWielding.ChasteCleave → "Strength - Weapon Wielding"
  */
 UCLASS(Abstract)
 class GODSENTAVENGER_API UGodsentSkillDisplayWindow : public UUserWidget
@@ -73,6 +77,18 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Display Window", meta = (BindWidgetOptional))
 	TObjectPtr<UImage> IconImage;
+
+	/// Tree and branch line under the title. Must be called CategoryText.
+	UPROPERTY(BlueprintReadOnly, Category = "Display Window", meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> CategoryText;
+
+	/// How the tree and branch are written. {Tree} and {Branch} get swapped in.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Display Window")
+	FText CategoryFormat = NSLOCTEXT("GodsentSkillTree", "CategoryFormat", "{Tree} - {Branch}");
+
+	/// Tree and branch from a skill tag, e.g. Skill.Strength.WeaponWielding.ChasteCleave → "Strength - Weapon Wielding"
+	UFUNCTION(BlueprintPure, Category = "Godsent|SkillTree")
+	FText GetCategoryLabel(const FGameplayTag& SkillTag) const;
 
 	/// Shown when the skill has no icon yet
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Display Window")
