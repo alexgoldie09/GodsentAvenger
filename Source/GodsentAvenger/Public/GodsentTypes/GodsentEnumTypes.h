@@ -111,3 +111,28 @@ enum class EGodsentSavePopupKind : uint8
 	SaveFailed,	// Writing the save failed: Retry / Continue without saving
 	LoadFailed	// The save couldn't be read at startup: Start a new family / Back
 };
+
+/// What Aldegon is doing (drives his anim blueprint and, later, his behaviour tree)
+UENUM(BlueprintType)
+enum class EGodsentAldegonState : uint8
+{
+	Dormant,		// Sitting on his throne
+	Waking,			// Rise: getting up out of the throne
+	Grounded,		// Capsule on the navmesh, visuals hovering just off the floor
+	TakingOff,		// Climbing up to Airborne Height
+	Airborne,		// Flying (capsule off the ground)
+	Landing,		// Flying to a landing spot, then coming down
+	ReturningHome,	// Player left the arena: flying back to the throne
+	SittingDown,	// Rise played backwards onto the throne
+	Dead
+};
+
+/// What a flight component is busy with
+UENUM(BlueprintType)
+enum class EGodsentFlightAction : uint8
+{
+	None,		// Holding position (hovering if flying)
+	TakeOff,	// Climbing to cruise height
+	FlyTo,		// Flying along a navmesh route at cruise height
+	Land		// Flying to a spot, then coming down onto the navmesh
+};

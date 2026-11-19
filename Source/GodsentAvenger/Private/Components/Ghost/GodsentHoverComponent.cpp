@@ -3,6 +3,13 @@
 #include "Components/Ghost/GodsentHoverComponent.h"
 #include "GameFramework/Actor.h"
 
+namespace
+{
+	/// Hover Alpha at either end
+	constexpr float HoverAlphaSettled = 0.f;
+	constexpr float HoverAlphaFull = 1.f;
+}
+
 UGodsentHoverComponent::UGodsentHoverComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -31,6 +38,15 @@ void UGodsentHoverComponent::BeginPlay()
 		SetComponentTickEnabled(false);
 	}
 
+	CurrentHoverHeight = HoverHeight;
+
+	// Something (Aldegon) may have already switched the float on or off before this started
+	if (!bHoverActiveSetByCode)
+	{
+		bHoverActive = bStartActive;
+		HoverAlpha = bStartActive ? HoverAlphaFull : HoverAlphaSettled;
+	}
+
 	// Start each enemy at a different point in its bob so a group doesn't move in sync
 	BobPhase = FMath::FRandRange(0.f, 2.f * UE_PI);
 	SwayPhase = FMath::FRandRange(0.f, 2.f * UE_PI);
@@ -50,6 +66,20 @@ void UGodsentHoverComponent::SetVisualRoot(USceneComponent* NewVisualRoot)
 		BaseRelativeRotation = NewVisualRoot->GetRelativeRotation();
 		SetComponentTickEnabled(true);
 	}
+}
+
+void UGodsentHoverComponent::SetHoverActive(bool bActive, bool bInstant)
+{
+	bHoverActive = bActive;
+	bHoverActiveSetByCode = true;
+
+	if (bInstant)
+		HoverAlpha = bActive ? HoverAlphaFull : HoverAlphaSettled;
+}
+
+void UGodsentHoverComponent::SetHoverHeight(float NewHoverHeight)
+{
+	HoverHeight = NewHoverHeight;
 }
 
 void UGodsentHoverComponent::SetAgitation(float NewAgitation)
@@ -75,6 +105,9 @@ void UGodsentHoverComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	// Movement relative to the owner's facing: X = forward, Y = right
 	const FVector LocalVelocity = Owner->GetActorTransform().InverseTransformVectorNoScale(Owner->GetVelocity());
 	const float MoveAlpha = FMath::Clamp(LocalVelocity.Size2D() / FullSwaySpeed, 0.f, 1.f);
+
+	HoverAlpha = FMath::FInterpTo(HoverAlpha, bHoverActive ? HoverAlphaFull : HoverAlphaSettled, DeltaTime, HoverBlendSpeed);
+	CurrentHoverHeight = FMath::FInterpTo(CurrentHoverHeight, HoverHeight, DeltaTime, HoverBlendSpeed);
 
 	CurrentAgitation = FMath::FInterpTo(CurrentAgitation, TargetAgitation, DeltaTime, AgitationInterpSpeed);
 	RecoilAlpha = FMath::FInterpTo(RecoilAlpha, 0.f, DeltaTime, RecoilRecoverySpeed);
@@ -105,12 +138,15 @@ void UGodsentHoverComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	const float ShakeRoll = FMath::Sin(ShakeTime * 29.f) * AgitationShakeRoll * CurrentAgitation;
 
 	// Recoil: back and up, nose tipped up
-	const FVector RecoilOffset = FVector(-RecoilDistance, 0.f, RecoilDistance * 0.4f) * RecoilAlpha;
+	const FVector RecoilOffset = FVector(-RecoilDistance, 0.f, RecoilDistance * RecoilLift) * RecoilAlpha;
 	const float RecoilPitchNow = RecoilPitch * RecoilAlpha;
 
-	const FVector Offset = FVector(0.f, SwayY, HoverHeight + BobZ) + Shake + RecoilOffset;
-	const FRotator RotationOffset(CurrentLeanPitch + RecoilPitchNow, 0.f, SwayRollNow + CurrentBankRoll + ShakeRoll);
+	// Hover Alpha eases the whole float in and out (settled = exactly where it was placed)
+	const FVector Offset = (FVector(0.f, SwayY, CurrentHoverHeight + BobZ) + Shake + RecoilOffset) * HoverAlpha;
+	const FRotator RotationOffset = FRotator(CurrentLeanPitch + RecoilPitchNow, 0.f, SwayRollNow + CurrentBankRoll + ShakeRoll) * HoverAlpha;
 
-	// The visual root is assumed to be attached to the capsule, so its relative space is the owner's local space
-	Root->SetRelativeLocationAndRotation(BaseRelativeLocation + Offset, BaseRelativeRotation + RotationOffset);
+	// The visual root is assumed to be attached to the capsule, so its relative space is the owner's local space.
+	// The tilt is applied in that space too, so a mesh turned -90 in the Blueprint still leans forwards, not sideways.
+	const FQuat TiltedRotation = RotationOffset.Quaternion() * BaseRelativeRotation.Quaternion();
+	Root->SetRelativeLocationAndRotation(BaseRelativeLocation + Offset, TiltedRotation);
 }

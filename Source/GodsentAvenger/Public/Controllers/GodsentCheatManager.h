@@ -8,6 +8,7 @@
 
 class AGodsentHeroController;
 class UGodsentAbilitySystemComponent;
+class UGodsentAldegonComponent;
 
 /**
  * Every Godsent debug console command lives here, not on the hero controller.
@@ -57,7 +58,55 @@ public:
 	UFUNCTION(Exec)
 	void GodsentRemoveAbility(FName AbilityTagName);
 
+	// ---- Aldegon (Stage 17: test his body without his behaviour tree) ----
+
+	/// Gets him up off the throne; he takes off once he's up
+	UFUNCTION(Exec)
+	void GodsentAldegonWake();
+
+	/// Grounded → Airborne
+	UFUNCTION(Exec)
+	void GodsentAldegonTakeOff();
+
+	/// Airborne: flies over the player
+	UFUNCTION(Exec)
+	void GodsentAldegonFlyToPlayer();
+
+	/// Airborne: flies to a random reachable spot within Radius of the player, e.g. "GodsentAldegonFlyRandom 1500"
+	UFUNCTION(Exec)
+	void GodsentAldegonFlyRandom(float Radius = 1500.f);
+
+	/// Airborne: lands on the navmesh right below him
+	UFUNCTION(Exec)
+	void GodsentAldegonLand();
+
+	/// Airborne: lands Distance away from the player, on his side, e.g. "GodsentAldegonLandNearPlayer 600"
+	UFUNCTION(Exec)
+	void GodsentAldegonLandNearPlayer(float Distance = 600.f);
+
+	/// Any awake state: flies back to the throne, sits down and heals
+	UFUNCTION(Exec)
+	void GodsentAldegonReturnHome();
+
+	/// Launches him like a knockback would (airborne: he falls and lands, ending up Grounded)
+	UFUNCTION(Exec)
+	void GodsentAldegonKnockDown();
+
+	/// 1 = face the player while flying, 0 = face where he's going
+	UFUNCTION(Exec)
+	void GodsentAldegonFacePlayer(bool bFacePlayer);
+
+	/// Logs his state, whether he's flying and how high he is
+	UFUNCTION(Exec)
+	void GodsentAldegonState();
+
 private:
 	AGodsentHeroController* GetHeroController() const;
 	UGodsentAbilitySystemComponent* GetHeroASC() const;
+
+	/// The first Aldegon in the level (null, with a log, if there isn't one)
+	UGodsentAldegonComponent* FindAldegon(const TCHAR* CommandName) const;
+
+	/// Logs whether an Aldegon command was accepted (most only work in certain states)
+	void LogAldegonCommand(const TCHAR* CommandName, bool bAccepted, const UGodsentAldegonComponent* Aldegon) const;
 };

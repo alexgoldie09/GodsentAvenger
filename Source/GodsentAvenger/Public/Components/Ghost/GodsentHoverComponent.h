@@ -15,6 +15,8 @@
  * - Agitation (0-1) adds a building shake (Mindfire charge);
  * - Play Recoil kicks it back and up, then springs back (Mindfire fire).
  * The capsule keeps walking on the navmesh with gravity; only the visuals float.
+ *
+ * Set Hover Active off to ease the visuals back down to where they were placed (Aldegon on his throne, or dying).
  */
 UCLASS(ClassGroup = (Godsent), meta = (BlueprintSpawnableComponent))
 class GODSENTAVENGER_API UGodsentHoverComponent : public UActorComponent
@@ -41,6 +43,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Godsent|Hover")
 	USceneComponent* GetVisualRoot() const { return VisualRoot.Get(); }
 
+	/// Off eases the visuals back to where they were placed (no float, bob or sway). Instant skips the ease.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Hover")
+	void SetHoverActive(bool bActive, bool bInstant = false);
+
+	UFUNCTION(BlueprintPure, Category = "Godsent|Hover")
+	bool IsHoverActive() const { return bHoverActive; }
+
+	/// Changes Hover Height (eases there over Hover Blend Speed)
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Hover")
+	void SetHoverHeight(float NewHoverHeight);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -51,6 +64,14 @@ protected:
 	/// Extra height on top of where the visual root sits in the Blueprint
 	UPROPERTY(EditDefaultsOnly, Category = "Hover", meta = (Units = "cm"))
 	float HoverHeight = 0.f;
+
+	/// Untick to start settled (no float until Set Hover Active is called)
+	UPROPERTY(EditDefaultsOnly, Category = "Hover")
+	bool bStartActive = true;
+
+	/// How quickly the float eases in and out, and between heights
+	UPROPERTY(EditDefaultsOnly, Category = "Hover", meta = (ClampMin = "0.0"))
+	float HoverBlendSpeed = 2.f;
 
 	// ---- Idle bob ----
 
@@ -115,6 +136,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Hover|Recoil", meta = (ClampMin = "0.0", Units = "cm"))
 	float RecoilDistance = 25.f;
 
+	/// How much of the recoil goes upwards (0.4 = up 40% as far as it goes back)
+	UPROPERTY(EditDefaultsOnly, Category = "Hover|Recoil", meta = (ClampMin = "0.0"))
+	float RecoilLift = 0.4f;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Hover|Recoil", meta = (ClampMin = "0.0", Units = "deg"))
 	float RecoilPitch = 15.f;
 
@@ -138,4 +163,15 @@ private:
 
 	float CurrentLeanPitch = 0.f;
 	float CurrentBankRoll = 0.f;
+
+	bool bHoverActive = true;
+
+	/// Set Hover Active was called (BeginPlay then leaves the float as it was told)
+	bool bHoverActiveSetByCode = false;
+
+	/// 0 = settled where placed, 1 = fully floating
+	float HoverAlpha = 1.f;
+
+	/// Hover Height as it eases towards a new value
+	float CurrentHoverHeight = 0.f;
 };

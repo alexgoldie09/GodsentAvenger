@@ -8,6 +8,18 @@
 #include "Controllers/GodsentHeroController.h"
 #include "GameplayTagContainer.h"
 #include "Subsystems/GodsentLineageSubsystem.h"
+#include "Components/Aldegon/GodsentAldegonComponent.h"
+#include "Components/Flight/GodsentFlightComponent.h"
+#include "EngineUtils.h"
+#include "GameFramework/Character.h"
+#include "NavigationSystem.h"
+
+namespace
+{
+	/// Knock Down cheat: a sideways shove with a little lift, like a Heal knockback
+	constexpr float AldegonCheatKnockbackStrength = 600.f;
+	constexpr float AldegonCheatKnockbackUpForce = 200.f;
+}
 
 AGodsentHeroController* UGodsentCheatManager::GetHeroController() const
 {
@@ -156,4 +168,131 @@ void UGodsentCheatManager::GodsentRemoveAbility(FName AbilityTagName)
 		ASC->ClearAbility(Handle); // Active ones (Light) are ended first, so OnEndAbility still runs
 
 	UE_LOG(LogTemp, Warning, TEXT("GodsentRemoveAbility: removed %d ability(s) with %s"), HandlesToRemove.Num(), *AbilityTagName.ToString());
+}
+// ---- Aldegon ----
+
+UGodsentAldegonComponent* UGodsentCheatManager::FindAldegon(const TCHAR* CommandName) const
+{
+	for (TActorIterator<ACharacter> It(GetWorld()); It; ++It)
+	{
+		if (UGodsentAldegonComponent* Aldegon = It->FindComponentByClass<UGodsentAldegonComponent>())
+			return Aldegon;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("%s: no Aldegon in this level"), CommandName);
+	return nullptr;
+}
+
+void UGodsentCheatManager::LogAldegonCommand(const TCHAR* CommandName, bool bAccepted, const UGodsentAldegonComponent* Aldegon) const
+{
+	const FString StateName = Aldegon ? UEnum::GetDisplayValueAsText(Aldegon->GetAldegonState()).ToString() : TEXT("?");
+
+	UE_LOG(LogTemp, Warning, TEXT("%s: %s (Aldegon is %s)"), CommandName,
+		bAccepted ? TEXT("ok") : TEXT("ignored, wrong state or nowhere to go"), *StateName);
+}
+
+void UGodsentCheatManager::GodsentAldegonWake()
+{
+	if (UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonWake")))
+		LogAldegonCommand(TEXT("GodsentAldegonWake"), Aldegon->Wake(), Aldegon);
+}
+
+void UGodsentCheatManager::GodsentAldegonTakeOff()
+{
+	if (UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonTakeOff")))
+		LogAldegonCommand(TEXT("GodsentAldegonTakeOff"), Aldegon->TakeOff(), Aldegon);
+}
+
+void UGodsentCheatManager::GodsentAldegonFlyToPlayer()
+{
+	UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonFlyToPlayer"));
+	const APawn* PlayerPawn = GetOuterAPlayerController()->GetPawn();
+
+	if (Aldegon && PlayerPawn)
+		LogAldegonCommand(TEXT("GodsentAldegonFlyToPlayer"), Aldegon->FlyTo(PlayerPawn->GetActorLocation()), Aldegon);
+}
+
+void UGodsentCheatManager::GodsentAldegonFlyRandom(float Radius)
+{
+	UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonFlyRandom"));
+	const APawn* PlayerPawn = GetOuterAPlayerController()->GetPawn();
+	UNavigationSystemV1* NavSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+
+	if (!Aldegon || !PlayerPawn || !NavSystem)
+		return;
+
+	FNavLocation RandomSpot;
+	const bool bFound = NavSystem->GetRandomReachablePointInRadius(PlayerPawn->GetActorLocation(), Radius, RandomSpot);
+
+	LogAldegonCommand(TEXT("GodsentAldegonFlyRandom"), bFound && Aldegon->FlyTo(RandomSpot.Location), Aldegon);
+}
+
+void UGodsentCheatManager::GodsentAldegonLand()
+{
+	if (UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonLand")))
+		LogAldegonCommand(TEXT("GodsentAldegonLand"), Aldegon->LandAt(Aldegon->GetOwner()->GetActorLocation()), Aldegon);
+}
+
+void UGodsentCheatManager::GodsentAldegonLandNearPlayer(float Distance)
+{
+	UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonLandNearPlayer"));
+	const APawn* PlayerPawn = GetOuterAPlayerController()->GetPawn();
+
+	if (!Aldegon || !PlayerPawn)
+		return;
+
+	// On Aldegon's side of the player
+	FVector FromPlayer = Aldegon->GetOwner()->GetActorLocation() - PlayerPawn->GetActorLocation();
+	FromPlayer.Z = 0.f;
+
+	const FVector Spot = PlayerPawn->GetActorLocation() + FromPlayer.GetSafeNormal() * Distance;
+	LogAldegonCommand(TEXT("GodsentAldegonLandNearPlayer"), Aldegon->LandAt(Spot), Aldegon);
+}
+
+void UGodsentCheatManager::GodsentAldegonReturnHome()
+{
+	if (UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonReturnHome")))
+		LogAldegonCommand(TEXT("GodsentAldegonReturnHome"), Aldegon->ReturnHome(), Aldegon);
+}
+
+void UGodsentCheatManager::GodsentAldegonKnockDown()
+{
+	UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonKnockDown"));
+	ACharacter* AldegonCharacter = Aldegon ? Cast<ACharacter>(Aldegon->GetOwner()) : nullptr;
+	const APawn* PlayerPawn = GetOuterAPlayerController()->GetPawn();
+
+	if (!AldegonCharacter || !PlayerPawn)
+		return;
+
+	// Away from the player, like Heal's knockback
+	FVector Away = AldegonCharacter->GetActorLocation() - PlayerPawn->GetActorLocation();
+	Away.Z = 0.f;
+
+	AldegonCharacter->LaunchCharacter(Away.GetSafeNormal() * AldegonCheatKnockbackStrength + FVector(0.f, 0.f, AldegonCheatKnockbackUpForce), true, true);
+	LogAldegonCommand(TEXT("GodsentAldegonKnockDown"), true, Aldegon);
+}
+
+void UGodsentCheatManager::GodsentAldegonFacePlayer(bool bFacePlayer)
+{
+	if (UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonFacePlayer")))
+	{
+		Aldegon->SetFacingTarget(bFacePlayer ? GetOuterAPlayerController()->GetPawn() : nullptr);
+		LogAldegonCommand(TEXT("GodsentAldegonFacePlayer"), true, Aldegon);
+	}
+}
+
+void UGodsentCheatManager::GodsentAldegonState()
+{
+	UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonState"));
+
+	if (!Aldegon)
+		return;
+
+	const UGodsentFlightComponent* Flight = Aldegon->GetOwner()->FindComponentByClass<UGodsentFlightComponent>();
+
+	UE_LOG(LogTemp, Warning, TEXT("GodsentAldegonState: %s, flying %s, flight action %s, capsule %.0f cm off the ground"),
+		*UEnum::GetDisplayValueAsText(Aldegon->GetAldegonState()).ToString(),
+		Aldegon->IsFlying() ? TEXT("yes") : TEXT("no"),
+		Flight ? *UEnum::GetDisplayValueAsText(Flight->GetCurrentAction()).ToString() : TEXT("?"),
+		Flight ? Flight->GetHeightAboveGround() : 0.f);
 }
