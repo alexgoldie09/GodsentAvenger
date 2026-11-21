@@ -32,4 +32,9 @@ public:
 	/// Hooks an enemy widget (e.g. a health bar widget component) up to its enemy
 	UFUNCTION(BlueprintCallable)
 	void InitEnemyCreatedWidget(AActor* OwningEnemyActor);
+
+	/// Asked to go away (e.g. the enemy that drew it died). Removes straight away by default.
+	/// Override it to play a hide animation first, then call Remove from Parent yourself.
+	UFUNCTION(BlueprintNativeEvent, Category = "Godsent|Widget", meta = (DisplayName = "Remove Drawn Widget"))
+	void RemoveDrawnWidget();
 };

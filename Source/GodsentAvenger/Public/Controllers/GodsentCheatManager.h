@@ -96,9 +96,23 @@ public:
 	UFUNCTION(Exec)
 	void GodsentAldegonFacePlayer(bool bFacePlayer);
 
-	/// Logs his state, whether he's flying and how high he is
+	/// Logs his state, whether he's flying and how high he is, plus the fight counters
 	UFUNCTION(Exec)
 	void GodsentAldegonState();
+
+	// ---- Aldegon fight (Stage 18) ----
+
+	/// Starts the fight as if you walked into the arena (targets you and wakes him)
+	UFUNCTION(Exec)
+	void GodsentAldegonStartFight();
+
+	/// Ends the fight as if you walked out (he clears his summons and goes home)
+	UFUNCTION(Exec)
+	void GodsentAldegonEndFight();
+
+	/// Takes this % of his max health off, to test health bands and frenzy, e.g. "GodsentAldegonHurt 15"
+	UFUNCTION(Exec)
+	void GodsentAldegonHurt(float Percent = 10.f);
 
 private:
 	AGodsentHeroController* GetHeroController() const;

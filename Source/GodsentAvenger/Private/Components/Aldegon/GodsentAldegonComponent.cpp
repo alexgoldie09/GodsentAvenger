@@ -13,6 +13,10 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GodsentGameplayTags.h"
 #include "AbilitySystem/GodsentAttributeSet.h"
+#include "Abilities/GameplayAbility.h"
+#include "Controllers/GodsentAIController.h"
+#include "GameplayEffectTypes.h"
+#include "GodsentFunctionLibrary.h"
 #include "TimerManager.h"
 
 namespace
@@ -22,12 +26,26 @@ namespace
 
 	/// Sitting down starts this close to the end of Rise (exactly at the end can count as already finished)
 	constexpr float AldegonRiseEndInset = 0.01f;
+
+	/// Health as a percentage
+	constexpr float AldegonFullHealthPercent = 100.f;
+
+	/// Ground Trigger falls back to this walk speed if the target has no movement or MoveSpeed to read (the hero's default)
+	constexpr float AldegonFallbackTargetWalkSpeed = 400.f;
 }
 
 UGodsentAldegonComponent::UGodsentAldegonComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
+
+	// A Soul Beam or Death Wave breaks a claw streak
+	ClawAbilityTag = GodsentGameplayTags::Enemy_Ability_Aldegon_Claw;
+	SummonAbilityTag = GodsentGameplayTags::Enemy_Ability_Aldegon_Summon;
+	CancelOnFightEndTags.AddTag(GodsentGameplayTags::Enemy_Ability_Aldegon);
+	LifeSiphonAbilityTag = GodsentGameplayTags::Enemy_Ability_Aldegon_LifeSiphon;
+	ClawResetAbilityTags.AddTag(GodsentGameplayTags::Enemy_Ability_Aldegon_SoulBeam);
+	ClawResetAbilityTags.AddTag(GodsentGameplayTags::Enemy_Ability_Aldegon_DeathWave);
 }
 
 void UGodsentAldegonComponent::BeginPlay()
@@ -61,6 +79,11 @@ void UGodsentAldegonComponent::BeginPlay()
 	{
 		DeadTagDelegateHandle = ASC->RegisterGameplayTagEvent(GodsentGameplayTags::Shared_Status_Dead, EGameplayTagEventType::NewOrRemoved)
 			.AddUObject(this, &ThisClass::OnDeadTagChanged);
+
+		HealthChangedDelegateHandle = ASC->GetGameplayAttributeValueChangeDelegate(UGodsentAttributeSet::GetCurrentHealthAttribute())
+			.AddUObject(this, &ThisClass::OnHealthChanged);
+
+		AbilityEndedDelegateHandle = ASC->OnAbilityEnded.AddUObject(this, &ThisClass::OnAbilityEnded);
 	}
 
 	ApplyStats();
@@ -85,7 +108,11 @@ void UGodsentAldegonComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		OwnerCharacter->MovementModeChangedDelegate.RemoveDynamic(this, &ThisClass::OnMovementModeChanged);
 
 		if (UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwnerCharacter))
+		{
 			ASC->RegisterGameplayTagEvent(GodsentGameplayTags::Shared_Status_Dead, EGameplayTagEventType::NewOrRemoved).Remove(DeadTagDelegateHandle);
+			ASC->GetGameplayAttributeValueChangeDelegate(UGodsentAttributeSet::GetCurrentHealthAttribute()).Remove(HealthChangedDelegateHandle);
+			ASC->OnAbilityEnded.Remove(AbilityEndedDelegateHandle);
+		}
 	}
 
 	if (FlightComponent)
@@ -96,8 +123,7 @@ void UGodsentAldegonComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void UGodsentAldegonComponent::ApplyStats()
 {
-	const float Level = GetStatLevel();
-	const float GroundedHeightValue = GroundedHeight.GetValueAtLevel(Level);
+	const float GroundedHeightValue = ReadStat(GroundedHeight, TEXT("Grounded Height"));
 
 	if (HoverComponent)
 		HoverComponent->SetHoverHeight(GroundedHeightValue);
@@ -105,10 +131,23 @@ void UGodsentAldegonComponent::ApplyStats()
 	if (FlightComponent)
 	{
 		// The float is on top of the capsule's height, so the capsule flies that much lower to put his feet at Airborne Height
-		FlightComponent->SetCruiseHeight(AirborneHeight.GetValueAtLevel(Level) - GroundedHeightValue);
-		FlightComponent->SetFlightSpeeds(FlySpeed.GetValueAtLevel(Level), ClimbSpeed.GetValueAtLevel(Level),
-			DescentSpeed.GetValueAtLevel(Level), FlyTurnRate.GetValueAtLevel(Level));
+		FlightComponent->SetCruiseHeight(ReadStat(AirborneHeight, TEXT("Airborne Height")) - GroundedHeightValue);
+		FlightComponent->SetFlightSpeeds(ReadStat(FlySpeed, TEXT("Fly Speed")), ReadStat(ClimbSpeed, TEXT("Climb Speed")),
+			ReadStat(DescentSpeed, TEXT("Descent Speed")), ReadStat(FlyTurnRate, TEXT("Fly Turn Rate")));
 	}
+}
+
+float UGodsentAldegonComponent::ReadStat(const FScalableFloat& Stat, const TCHAR* StatName) const
+{
+	// Not linked to the curve table: still works (Value on its own) but say so once
+	if (!Stat.Curve.CurveTable && !WarnedUnlinkedStats.Contains(StatName))
+	{
+		WarnedUnlinkedStats.Add(StatName);
+		UE_LOG(LogTemp, Warning, TEXT("%s: Aldegon stat '%s' isn't linked to CT_AldegonStats, using %.2f"),
+			*GetNameSafe(GetOwner()), StatName, Stat.Value);
+	}
+
+	return Stat.GetValueAtLevel(GetStatLevel());
 }
 
 float UGodsentAldegonComponent::GetStatLevel() const
@@ -328,7 +367,12 @@ void UGodsentAldegonComponent::OnSitDownFinished()
 	if (bHealOnReturnHome)
 		HealToFull();
 
+	ResetFightCounters();
 	SetState(EGodsentAldegonState::Dormant);
+
+	// The player came back in while he was sitting down: straight back up
+	if (bFightActive)
+		Wake();
 }
 
 void UGodsentAldegonComponent::HealToFull()
@@ -415,6 +459,15 @@ void UGodsentAldegonComponent::OnDeadTagChanged(const FGameplayTag Tag, int32 Ne
 		HoverComponent->SetHoverActive(false);
 
 	SetState(EGodsentAldegonState::Dead);
+
+	// His adds and totems die with him
+	KillAllSummons();
+
+	if (bFightActive)
+	{
+		bFightActive = false;
+		OnFightEnded.Broadcast(EGodsentBossFightEnd::BossDefeated);
+	}
 }
 
 void UGodsentAldegonComponent::SetState(EGodsentAldegonState NewState)
@@ -424,6 +477,27 @@ void UGodsentAldegonComponent::SetState(EGodsentAldegonState NewState)
 
 	const EGodsentAldegonState OldState = CurrentState;
 	CurrentState = NewState;
+	StateEnteredTime = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.f;
+
+	switch (NewState)
+	{
+	case EGodsentAldegonState::TakingOff:
+		// Going up deals with whatever made him lift off
+		bLiftOffPending = false;
+		ConsecutiveClaws = 0;
+		break;
+
+	case EGodsentAldegonState::Grounded:
+		AirborneBandsCrossed = 0;
+		break;
+
+	default:
+		break;
+	}
+
+	// Whatever he was told to face while flying up or down is done with
+	if (NewState == EGodsentAldegonState::Airborne || NewState == EGodsentAldegonState::Grounded)
+		SetFacingTarget(nullptr);
 
 	if (bLogStateChanges)
 	{
@@ -432,4 +506,328 @@ void UGodsentAldegonComponent::SetState(EGodsentAldegonState NewState)
 	}
 
 	OnAldegonStateChanged.Broadcast(NewState, OldState);
+}
+
+// ---- Fight ----
+
+void UGodsentAldegonComponent::StartFight(AActor* NewChallenger)
+{
+	if (CurrentState == EGodsentAldegonState::Dead || !NewChallenger)
+		return;
+
+	const bool bWasActive = bFightActive;
+
+	bFightActive = true;
+	Challenger = NewChallenger;
+
+	if (AGodsentAIController* AIController = OwnerCharacter ? Cast<AGodsentAIController>(OwnerCharacter->GetController()) : nullptr)
+		AIController->SetTargetActor(NewChallenger);
+
+	if (!bWasActive)
+		OnFightStarted.Broadcast(NewChallenger);
+
+	// Sitting down: On Sit Down Finished wakes him once he's settled
+	if (CurrentState == EGodsentAldegonState::Dormant)
+		Wake();
+	else if (CurrentState == EGodsentAldegonState::ReturningHome)
+		ResumeFromReturnHome();
+}
+
+void UGodsentAldegonComponent::EndFight()
+{
+	if (!bFightActive)
+		return;
+
+	bFightActive = false;
+	Challenger.Reset();
+
+	if (AGodsentAIController* AIController = OwnerCharacter ? Cast<AGodsentAIController>(OwnerCharacter->GetController()) : nullptr)
+		AIController->ClearTargetActor();
+
+	// Drop whatever move he's in the middle of before heading home
+	if (UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwnerCharacter))
+	{
+		if (!CancelOnFightEndTags.IsEmpty())
+			ASC->CancelAbilities(&CancelOnFightEndTags);
+	}
+
+	KillAllSummons();
+	ReturnHome();
+
+	OnFightEnded.Broadcast(EGodsentBossFightEnd::PlayerLeft);
+}
+
+void UGodsentAldegonComponent::ResumeFromReturnHome()
+{
+	if (CurrentState != EGodsentAldegonState::ReturningHome || !FlightComponent)
+		return;
+
+	// Still in the air: just climb back to fighting height
+	if (FlightComponent->IsFlying())
+	{
+		SetState(EGodsentAldegonState::TakingOff);
+		FlightComponent->TakeOff();
+		return;
+	}
+
+	// Already lining up with the throne (no movement physics): stand back up and take off
+	bTurningToHome = false;
+	SetComponentTickEnabled(false);
+
+	if (OwnerCharacter->GetCharacterMovement()->MovementMode == MOVE_None)
+		OwnerCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+
+	SetState(EGodsentAldegonState::Grounded);
+	TakeOff();
+}
+
+void UGodsentAldegonComponent::ResetFightCounters()
+{
+	bLiftOffPending = false;
+	AirborneBandsCrossed = 0;
+	ConsecutiveClaws = 0;
+	LastHealthPercent = GetHealthPercent();
+	SetFrenzy(false);
+}
+
+void UGodsentAldegonComponent::SetFrenzy(bool bNewFrenzied)
+{
+	if (bFrenzied == bNewFrenzied)
+		return;
+
+	bFrenzied = bNewFrenzied;
+
+	if (bFrenzied)
+	{
+		UGodsentFunctionLibrary::AddGameplayTagToActorIfNone(OwnerCharacter, GodsentGameplayTags::Enemy_Status_Frenzy);
+		OnFrenzyStarted.Broadcast();
+	}
+	else
+	{
+		UGodsentFunctionLibrary::RemoveGameplayTagFromActorIfFound(OwnerCharacter, GodsentGameplayTags::Enemy_Status_Frenzy);
+	}
+}
+
+void UGodsentAldegonComponent::OnHealthChanged(const FOnAttributeChangeData& Data)
+{
+	const float NewPercent = GetHealthPercent();
+	const float OldPercent = LastHealthPercent;
+	LastHealthPercent = NewPercent;
+
+	// Only counts once he's up and fighting (not the start-up stats filling his health in)
+	const bool bAwake = CurrentState == EGodsentAldegonState::Grounded || CurrentState == EGodsentAldegonState::Landing
+		|| CurrentState == EGodsentAldegonState::TakingOff || CurrentState == EGodsentAldegonState::Airborne;
+
+	if (!bAwake || NewPercent >= OldPercent)
+		return;
+
+	int32 BandsCrossed = 0;
+
+	for (const float Band : LiftOffHealthBands)
+	{
+		if (OldPercent > Band && NewPercent <= Band)
+			++BandsCrossed;
+	}
+
+	if (BandsCrossed > 0)
+	{
+		const bool bOnTheGround = CurrentState == EGodsentAldegonState::Grounded || CurrentState == EGodsentAldegonState::Landing;
+
+		// Grounded: time to go up. Airborne: count them, enough brings him down.
+		if (bOnTheGround)
+			bLiftOffPending = true;
+		else
+			AirborneBandsCrossed += BandsCrossed;
+	}
+
+	const float FrenzyAt = ReadStat(FrenzyAtHealthPercent, TEXT("Frenzy At Health Percent"));
+
+	if (FrenzyAt > 0.f && NewPercent <= FrenzyAt && NewPercent > 0.f)
+		SetFrenzy(true);
+}
+
+void UGodsentAldegonComponent::OnAbilityEnded(const FAbilityEndedData& AbilityEndedData)
+{
+	const UGameplayAbility* EndedAbility = AbilityEndedData.AbilityThatEnded;
+
+	if (!EndedAbility || AbilityEndedData.bWasCancelled)
+		return;
+
+	const FGameplayTagContainer& AbilityTags = EndedAbility->GetAssetTags();
+
+	if (ClawAbilityTag.IsValid() && AbilityTags.HasTag(ClawAbilityTag))
+		++ConsecutiveClaws;
+	else if (AbilityTags.HasAny(ClawResetAbilityTags))
+		ConsecutiveClaws = 0;
+}
+
+// ---- What the behaviour tree reads ----
+
+bool UGodsentAldegonComponent::IsForcedLandingPending() const
+{
+	const int32 BandsToLand = FMath::RoundToInt(ReadStat(AirborneBandsToLand, TEXT("Airborne Bands To Land")));
+	return BandsToLand > 0 && AirborneBandsCrossed >= BandsToLand;
+}
+
+float UGodsentAldegonComponent::GetTimeInState() const
+{
+	return GetWorld() ? GetWorld()->GetTimeSeconds() - StateEnteredTime : 0.f;
+}
+
+float UGodsentAldegonComponent::GetHealthPercent() const
+{
+	const UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwnerCharacter);
+
+	if (!ASC)
+		return AldegonFullHealthPercent;
+
+	const float MaxHealth = ASC->GetNumericAttribute(UGodsentAttributeSet::GetMaxHealthAttribute());
+
+	if (MaxHealth <= 0.f)
+		return AldegonFullHealthPercent;
+
+	return ASC->GetNumericAttribute(UGodsentAttributeSet::GetCurrentHealthAttribute()) / MaxHealth * AldegonFullHealthPercent;
+}
+
+float UGodsentAldegonComponent::GetGroundTriggerDistance(const AActor* Target) const
+{
+	float WalkSpeed = AldegonFallbackTargetWalkSpeed;
+
+	// The target's normal walking speed (MoveSpeed before sprint or buffs), so sprinting doesn't move the line
+	if (const UAbilitySystemComponent* TargetASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target))
+	{
+		const float BaseMoveSpeed = TargetASC->GetNumericAttributeBase(UGodsentAttributeSet::GetMoveSpeedAttribute());
+
+		if (BaseMoveSpeed > 0.f)
+			WalkSpeed = BaseMoveSpeed;
+	}
+	else if (const ACharacter* TargetCharacter = Cast<ACharacter>(Target))
+	{
+		WalkSpeed = TargetCharacter->GetCharacterMovement()->MaxWalkSpeed;
+	}
+
+	return ReadStat(GroundTriggerWalkSeconds, TEXT("Ground Trigger Walk Seconds")) * WalkSpeed;
+}
+
+float UGodsentAldegonComponent::GetResummonDistance() const
+{
+	return ReadStat(ResummonDistance, TEXT("Resummon Distance"));
+}
+
+float UGodsentAldegonComponent::GetMinAirborneTime() const
+{
+	return ReadStat(MinAirborneTime, TEXT("Min Airborne Time"));
+}
+
+int32 UGodsentAldegonComponent::GetMaxConsecutiveClaws() const
+{
+	return FMath::RoundToInt(ReadStat(MaxConsecutiveClaws, TEXT("Max Consecutive Claws")));
+}
+
+float UGodsentAldegonComponent::GetClawRange() const
+{
+	return ReadStat(ClawRange, TEXT("Claw Range"));
+}
+
+// ---- Summons ----
+
+TArray<TWeakObjectPtr<AActor>>& UGodsentAldegonComponent::GetSummonList(EGodsentAldegonSummonType SummonType)
+{
+	return SummonType == EGodsentAldegonSummonType::Totem ? LivingTotems : LivingAdds;
+}
+
+const TArray<TWeakObjectPtr<AActor>>& UGodsentAldegonComponent::GetSummonList(EGodsentAldegonSummonType SummonType) const
+{
+	return SummonType == EGodsentAldegonSummonType::Totem ? LivingTotems : LivingAdds;
+}
+
+void UGodsentAldegonComponent::RegisterSummon(AActor* Summon, EGodsentAldegonSummonType SummonType)
+{
+	if (!IsValid(Summon))
+		return;
+
+	TArray<TWeakObjectPtr<AActor>>& SummonList = GetSummonList(SummonType);
+
+	// Drop the dead while we're here
+	SummonList.RemoveAll([](const TWeakObjectPtr<AActor>& Entry)
+	{
+		return !Entry.IsValid() || UGodsentFunctionLibrary::NativeDoesActorHaveTag(Entry.Get(), GodsentGameplayTags::Shared_Status_Dead);
+	});
+
+	SummonList.AddUnique(Summon);
+}
+
+int32 UGodsentAldegonComponent::GetLivingSummonCount(EGodsentAldegonSummonType SummonType) const
+{
+	int32 LivingCount = 0;
+
+	for (const TWeakObjectPtr<AActor>& Entry : GetSummonList(SummonType))
+	{
+		if (Entry.IsValid() && !UGodsentFunctionLibrary::NativeDoesActorHaveTag(Entry.Get(), GodsentGameplayTags::Shared_Status_Dead))
+			++LivingCount;
+	}
+
+	return LivingCount;
+}
+
+int32 UGodsentAldegonComponent::GetMaxSummons(EGodsentAldegonSummonType SummonType) const
+{
+	const float MaxValue = SummonType == EGodsentAldegonSummonType::Totem
+		? ReadStat(MaxTotems, TEXT("Max Totems"))
+		: ReadStat(MaxAdds, TEXT("Max Adds"));
+
+	return FMath::RoundToInt(MaxValue);
+}
+
+void UGodsentAldegonComponent::GetLivingSummons(TArray<AActor*>& OutSummons) const
+{
+	OutSummons.Reset();
+
+	for (const TArray<TWeakObjectPtr<AActor>>* SummonList : { &LivingAdds, &LivingTotems })
+	{
+		for (const TWeakObjectPtr<AActor>& Entry : *SummonList)
+		{
+			if (Entry.IsValid() && !UGodsentFunctionLibrary::NativeDoesActorHaveTag(Entry.Get(), GodsentGameplayTags::Shared_Status_Dead))
+				OutSummons.Add(Entry.Get());
+		}
+	}
+}
+
+bool UGodsentAldegonComponent::CanSummonNow(EGodsentAldegonSummonType SummonType, FGameplayTag AbilityTag) const
+{
+	if (GetLivingSummonCount(SummonType) >= GetMaxSummons(SummonType))
+		return false;
+
+	if (!AbilityTag.IsValid())
+		AbilityTag = SummonType == EGodsentAldegonSummonType::Totem ? LifeSiphonAbilityTag : SummonAbilityTag;
+
+	UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwnerCharacter);
+
+	if (!ASC || !AbilityTag.IsValid())
+		return false;
+
+	TArray<FGameplayAbilitySpec*> MatchingSpecs;
+	ASC->GetActivatableGameplayAbilitySpecsByAllMatchingTags(AbilityTag.GetSingleTagContainer(), MatchingSpecs);
+
+	// Ready = could activate right now
+	for (const FGameplayAbilitySpec* Spec : MatchingSpecs)
+	{
+		if (Spec && Spec->Ability && !Spec->IsActive() && Spec->Ability->CanActivateAbility(Spec->Handle, ASC->AbilityActorInfo.Get()))
+			return true;
+	}
+
+	return false;
+}
+
+void UGodsentAldegonComponent::KillAllSummons()
+{
+	TArray<AActor*> Summons;
+	GetLivingSummons(Summons);
+
+	// Same as their health running out: their own death plays (dissolve and all)
+	for (AActor* Summon : Summons)
+		UGodsentFunctionLibrary::AddGameplayTagToActorIfNone(Summon, GodsentGameplayTags::Shared_Status_Dead);
+
+	LivingAdds.Reset();
+	LivingTotems.Reset();
 }

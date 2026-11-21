@@ -4,6 +4,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystem/Abilities/GodsentHeroGameplayAbility.h"
 #include "AbilitySystem/GodsentAbilitySystemComponent.h"
+#include "AbilitySystem/GodsentAttributeSet.h"
 #include "Components/SkillTree/SkillTreeComponent.h"
 #include "Controllers/GodsentHeroController.h"
 #include "GameplayTagContainer.h"
@@ -19,6 +20,10 @@ namespace
 	/// Knock Down cheat: a sideways shove with a little lift, like a Heal knockback
 	constexpr float AldegonCheatKnockbackStrength = 600.f;
 	constexpr float AldegonCheatKnockbackUpForce = 200.f;
+
+	/// Hurt cheat: health as a percentage, and it never kills (leaves him on 1)
+	constexpr float AldegonCheatFullHealthPercent = 100.f;
+	constexpr float AldegonCheatMinHealth = 1.f;
 }
 
 AGodsentHeroController* UGodsentCheatManager::GetHeroController() const
@@ -295,4 +300,50 @@ void UGodsentCheatManager::GodsentAldegonState()
 		Aldegon->IsFlying() ? TEXT("yes") : TEXT("no"),
 		Flight ? *UEnum::GetDisplayValueAsText(Flight->GetCurrentAction()).ToString() : TEXT("?"),
 		Flight ? Flight->GetHeightAboveGround() : 0.f);
+
+	UE_LOG(LogTemp, Warning, TEXT("    Fight %s, health %.0f%%, lift off pending %s, forced landing %s, claws %d, adds %d/%d, totems %d/%d, frenzy %s, %.1fs in state"),
+		Aldegon->IsFightActive() ? TEXT("on") : TEXT("off"),
+		Aldegon->GetHealthPercent(),
+		Aldegon->IsLiftOffPending() ? TEXT("yes") : TEXT("no"),
+		Aldegon->IsForcedLandingPending() ? TEXT("yes") : TEXT("no"),
+		Aldegon->GetConsecutiveClaws(),
+		Aldegon->GetLivingSummonCount(EGodsentAldegonSummonType::Add), Aldegon->GetMaxSummons(EGodsentAldegonSummonType::Add),
+		Aldegon->GetLivingSummonCount(EGodsentAldegonSummonType::Totem), Aldegon->GetMaxSummons(EGodsentAldegonSummonType::Totem),
+		Aldegon->IsFrenzied() ? TEXT("yes") : TEXT("no"),
+		Aldegon->GetTimeInState());
+}
+
+void UGodsentCheatManager::GodsentAldegonStartFight()
+{
+	if (UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonStartFight")))
+	{
+		Aldegon->StartFight(GetOuterAPlayerController()->GetPawn());
+		LogAldegonCommand(TEXT("GodsentAldegonStartFight"), Aldegon->IsFightActive(), Aldegon);
+	}
+}
+
+void UGodsentCheatManager::GodsentAldegonEndFight()
+{
+	if (UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonEndFight")))
+	{
+		Aldegon->EndFight();
+		LogAldegonCommand(TEXT("GodsentAldegonEndFight"), !Aldegon->IsFightActive(), Aldegon);
+	}
+}
+
+void UGodsentCheatManager::GodsentAldegonHurt(float Percent)
+{
+	UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonHurt"));
+	UAbilitySystemComponent* ASC = Aldegon ? UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Aldegon->GetOwner()) : nullptr;
+
+	if (!ASC)
+		return;
+
+	// Straight off his health (no defence, no hit react), the same way a health drain would
+	const float MaxHealth = ASC->GetNumericAttribute(UGodsentAttributeSet::GetMaxHealthAttribute());
+	const float CurrentHealth = ASC->GetNumericAttribute(UGodsentAttributeSet::GetCurrentHealthAttribute());
+	const float NewHealth = FMath::Max(CurrentHealth - MaxHealth * Percent / AldegonCheatFullHealthPercent, AldegonCheatMinHealth);
+
+	ASC->SetNumericAttributeBase(UGodsentAttributeSet::GetCurrentHealthAttribute(), NewHealth);
+	UE_LOG(LogTemp, Warning, TEXT("GodsentAldegonHurt: now %.0f%%"), Aldegon->GetHealthPercent());
 }

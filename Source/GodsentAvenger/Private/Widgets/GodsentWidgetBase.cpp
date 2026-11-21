@@ -27,3 +27,9 @@ void UGodsentWidgetBase::InitEnemyCreatedWidget(AActor* OwningEnemyActor)
 		BP_OnOwningEnemyUIComponentInitialized(EnemyUIComponent);
 	}
 }
+
+/// Default: gone straight away (Blueprints can override to animate out first)
+void UGodsentWidgetBase::RemoveDrawnWidget_Implementation()
+{
+	RemoveFromParent();
+}

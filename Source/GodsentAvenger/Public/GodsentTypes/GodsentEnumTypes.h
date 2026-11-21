@@ -136,3 +136,28 @@ enum class EGodsentFlightAction : uint8
 	FlyTo,		// Flying along a navmesh route at cruise height
 	Land		// Flying to a spot, then coming down onto the navmesh
 };
+
+/// What Aldegon summoned (each kind has its own cap)
+UENUM(BlueprintType)
+enum class EGodsentAldegonSummonType : uint8
+{
+	Add,	// A zombie or ghost
+	Totem	// A Life Siphon totem
+};
+
+/// Why a boss fight ended
+UENUM(BlueprintType)
+enum class EGodsentBossFightEnd : uint8
+{
+	PlayerLeft,		// Walked out of the arena: the boss goes home and heals
+	BossDefeated	// The boss died
+};
+
+/// What the Aldegon Flight behaviour tree task tells him to do
+UENUM(BlueprintType)
+enum class EGodsentAldegonFlightOrder : uint8
+{
+	TakeOff,	// Grounded → Airborne
+	FlyTo,		// Airborne: fly to a spot and stay up
+	LandAt		// Airborne: fly to a spot and land
+};

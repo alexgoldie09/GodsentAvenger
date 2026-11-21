@@ -97,6 +97,19 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Unblockable, "Enemy.Status.Unblockable");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Casting, "Enemy.Status.Casting");     // casting a spell (ghost Mindfire); Wail pauses while it's present
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Revealed, "Enemy.Status.Revealed");   // fully visible (ghost in combat); drives the Reveal material parameter
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Frenzy, "Enemy.Status.Frenzy");       // Aldegon below Frenzy At health: his claws can't be blocked
+
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Aldegon, "Enemy.Ability.Aldegon");                         // all his fight moves (cancelled when the player leaves)
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Aldegon_Summon, "Enemy.Ability.Aldegon.Summon");           // airborne: zombies and ghosts
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Aldegon_LifeSiphon, "Enemy.Ability.Aldegon.LifeSiphon");   // airborne: draining totems
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Aldegon_SoulBeam, "Enemy.Ability.Aldegon.SoulBeam");       // grounded: tracking beam
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Aldegon_DeathWave, "Enemy.Ability.Aldegon.DeathWave");     // grounded: expanding ring
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Aldegon_Claw, "Enemy.Ability.Aldegon.Claw");               // grounded: melee (counts towards Max Consecutive Claws)
+
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Cooldown_Aldegon_Summon, "Enemy.Cooldown.Aldegon.Summon");
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Cooldown_Aldegon_LifeSiphon, "Enemy.Cooldown.Aldegon.LifeSiphon");
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Cooldown_Aldegon_SoulBeam, "Enemy.Cooldown.Aldegon.SoulBeam");
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Cooldown_Aldegon_DeathWave, "Enemy.Cooldown.Aldegon.DeathWave");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Charging, "Enemy.Status.Charging");   // running in for a heavy attack (zombie SlamRun); gates a speed effect
 
 	/** Enemy Event Tags **/

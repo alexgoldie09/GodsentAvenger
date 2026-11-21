@@ -13,8 +13,13 @@ class ACharacter;
 class UAnimMontage;
 class UGodsentFlightComponent;
 class UGodsentHoverComponent;
+struct FAbilityEndedData;
+struct FOnAttributeChangeData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAldegonStateChanged, EGodsentAldegonState, NewState, EGodsentAldegonState, OldState);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAldegonFightStarted, AActor*, Challenger);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAldegonFightEnded, EGodsentBossFightEnd, Reason);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAldegonFrenzyStarted);
 
 /**
  * Aldegon's body: which state he's in and how he moves between them (BP_Aldegon).
@@ -25,7 +30,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAldegonStateChanged, EGodsentAld
  * Return Home (player left the arena): fly back, land, turn to the throne, Rise backwards, heal to full → Dormant.
  * Knocked out of the air (a knockback launch): he lands wherever he falls and is Grounded.
  *
- * Every tuning number is a Scalable Float, so it can point at a row in CT_Aldegon.
+ * The fight (Stage 18): the Boss Arena calls Start Fight / End Fight. While it's on he tracks what his behaviour tree
+ * needs to decide what to do: health bands crossed, claws in a row, his living summons, frenzy.
+ * The rules themselves live in the BT service Aldegon State Check.
+ *
+ * Every tuning number is a Scalable Float, so it can point at a row in CT_AldegonStats.
+ * New stats start at Value 1 (so picking a row just works) and log a warning if they aren't linked to a table.
  */
 UCLASS(ClassGroup = (Godsent), meta = (BlueprintSpawnableComponent))
 class GODSENTAVENGER_API UGodsentAldegonComponent : public UActorComponent
@@ -81,6 +91,102 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Godsent|Aldegon")
 	FOnAldegonStateChanged OnAldegonStateChanged;
 
+	// ---- Fight ----
+
+	/// The player walked into the arena: target them and wake up (or turn back if he was on his way home)
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Aldegon|Fight")
+	void StartFight(AActor* NewChallenger);
+
+	/// The player left the arena: drop the target, clear his summons and go home to heal
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Aldegon|Fight")
+	void EndFight();
+
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Fight")
+	bool IsFightActive() const { return bFightActive; }
+
+	/// Who he's fighting (null outside a fight)
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Fight")
+	AActor* GetChallenger() const { return Challenger.Get(); }
+
+	/// Fight started: show the boss bar here
+	UPROPERTY(BlueprintAssignable, Category = "Godsent|Aldegon|Fight")
+	FOnAldegonFightStarted OnFightStarted;
+
+	/// Fight ended (player left, or he died): hide the boss bar here
+	UPROPERTY(BlueprintAssignable, Category = "Godsent|Aldegon|Fight")
+	FOnAldegonFightEnded OnFightEnded;
+
+	/// Health dropped to Frenzy At (his claws become unblockable)
+	UPROPERTY(BlueprintAssignable, Category = "Godsent|Aldegon|Fight")
+	FOnAldegonFrenzyStarted OnFrenzyStarted;
+
+	// ---- What the behaviour tree reads ----
+
+	/// A health band was crossed while grounded: he should lift off
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Fight")
+	bool IsLiftOffPending() const { return bLiftOffPending; }
+
+	/// Enough health bands were crossed while airborne: he should come down
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Fight")
+	bool IsForcedLandingPending() const;
+
+	/// Claws since his last lift-off, Soul Beam or Death Wave
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Fight")
+	int32 GetConsecutiveClaws() const { return ConsecutiveClaws; }
+
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Fight")
+	bool IsFrenzied() const { return bFrenzied; }
+
+	/// Seconds since his state last changed
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Fight")
+	float GetTimeInState() const;
+
+	/// 0-100
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Fight")
+	float GetHealthPercent() const;
+
+	/// Ground Trigger Walk Seconds × the target's normal walk speed (cm)
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Fight")
+	float GetGroundTriggerDistance(const AActor* Target) const;
+
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Stats")
+	float GetResummonDistance() const;
+
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Stats")
+	float GetMinAirborneTime() const;
+
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Stats")
+	int32 GetMaxConsecutiveClaws() const;
+
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Stats")
+	float GetClawRange() const;
+
+	// ---- Summons ----
+
+	/// Call when he summons something (Stage 20 does this for you). It counts towards his cap until it dies.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Aldegon|Summons")
+	void RegisterSummon(AActor* Summon, EGodsentAldegonSummonType SummonType);
+
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Summons")
+	int32 GetLivingSummonCount(EGodsentAldegonSummonType SummonType) const;
+
+	/// Max Adds or Max Totems
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Summons")
+	int32 GetMaxSummons(EGodsentAldegonSummonType SummonType) const;
+
+	/// Every living add and totem
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Aldegon|Summons")
+	void GetLivingSummons(TArray<AActor*>& OutSummons) const;
+
+	/// Under the cap for that kind and its ability could activate right now (cooldown, cost, blocking tags).
+	/// No Ability Tag = his own Summon / Life Siphon tag for that kind.
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Summons")
+	bool CanSummonNow(EGodsentAldegonSummonType SummonType, FGameplayTag AbilityTag) const;
+
+	/// Kills every add and totem he summoned (his death, or the player leaving)
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Aldegon|Summons")
+	void KillAllSummons();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -110,6 +216,70 @@ protected:
 	/// Turning speed while flying (degrees/s)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats")
 	FScalableFloat FlyTurnRate = 120.f;
+
+	// ---- Fight stats ----
+
+	/// Airborne: the player within this many seconds of walking makes him come down ("2-3 seconds of default walking")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
+	FScalableFloat GroundTriggerWalkSeconds = 1.f;
+
+	/// Grounded with no adds or totems left: the player further than this makes him go back up to resummon (cm)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
+	FScalableFloat ResummonDistance = 1.f;
+
+	/// After taking off he stays up at least this long before the player getting close brings him down (s)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
+	FScalableFloat MinAirborneTime = 1.f;
+
+	/// Claws in a row before he lifts off. 0 = no limit.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
+	FScalableFloat MaxConsecutiveClaws = 1.f;
+
+	/// Health bands crossed while airborne that force him down. 0 = never.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
+	FScalableFloat AirborneBandsToLand = 1.f;
+
+	/// Health % at which he frenzies (unblockable claws). 0 = never.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
+	FScalableFloat FrenzyAtHealthPercent = 1.f;
+
+	/// Most zombies and ghosts alive at once
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
+	FScalableFloat MaxAdds = 1.f;
+
+	/// Most Life Siphon totems alive at once
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
+	FScalableFloat MaxTotems = 1.f;
+
+	/// How close the player must be for him to Claw (cm)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
+	FScalableFloat ClawRange = 1.f;
+
+	// ---- Fight rules (not per level, so these live here rather than the curve table) ----
+
+	/// Health % checkpoints. Crossing one while grounded makes him lift off. Add, remove or space them however you like.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight")
+	TArray<float> LiftOffHealthBands = { 90.f, 80.f, 70.f, 60.f, 50.f, 40.f, 30.f, 20.f, 10.f };
+
+	/// Ending one of these counts as a Claw
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight", meta = (Categories = "Enemy.Ability"))
+	FGameplayTag ClawAbilityTag;
+
+	/// The ability that summons adds (checked for cooldown before going up to resummon)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight", meta = (Categories = "Enemy.Ability"))
+	FGameplayTag SummonAbilityTag;
+
+	/// The ability that summons totems
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight", meta = (Categories = "Enemy.Ability"))
+	FGameplayTag LifeSiphonAbilityTag;
+
+	/// Moves with any of these are cancelled when the player leaves the arena (so he doesn't fly home mid-Beam)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight", meta = (Categories = "Enemy.Ability"))
+	FGameplayTagContainer CancelOnFightEndTags;
+
+	/// Ending one of these resets the Claw count (anything that isn't a claw breaks the streak)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight", meta = (Categories = "Enemy.Ability"))
+	FGameplayTagContainer ClawResetAbilityTags;
 
 	// ---- Throne ----
 
@@ -186,6 +356,27 @@ private:
 
 	void OnDeadTagChanged(const FGameplayTag Tag, int32 NewCount);
 
+	/// Health bands and frenzy
+	void OnHealthChanged(const FOnAttributeChangeData& Data);
+
+	/// Claw counting
+	void OnAbilityEnded(const FAbilityEndedData& AbilityEndedData);
+
+	/// The player came back while he was flying home: turn round and fight
+	void ResumeFromReturnHome();
+
+	/// Clears bands, claws and frenzy (after healing up on the throne)
+	void ResetFightCounters();
+
+	void SetFrenzy(bool bNewFrenzied);
+
+	/// Reads a stat at his level, warning once if it isn't linked to a curve table
+	float ReadStat(const FScalableFloat& Stat, const TCHAR* StatName) const;
+
+	/// Living summons of one kind (dead and destroyed ones are dropped)
+	TArray<TWeakObjectPtr<AActor>>& GetSummonList(EGodsentAldegonSummonType SummonType);
+	const TArray<TWeakObjectPtr<AActor>>& GetSummonList(EGodsentAldegonSummonType SummonType) const;
+
 	UPROPERTY()
 	TObjectPtr<ACharacter> OwnerCharacter;
 
@@ -207,4 +398,28 @@ private:
 	FTimerHandle HoverTimerHandle;
 
 	FDelegateHandle DeadTagDelegateHandle;
+	FDelegateHandle HealthChangedDelegateHandle;
+	FDelegateHandle AbilityEndedDelegateHandle;
+
+	// ---- Fight ----
+
+	bool bFightActive = false;
+	TWeakObjectPtr<AActor> Challenger;
+
+	bool bLiftOffPending = false;
+	int32 AirborneBandsCrossed = 0;
+	int32 ConsecutiveClaws = 0;
+	bool bFrenzied = false;
+
+	/// Health % at the last change (to see which bands a hit crossed)
+	float LastHealthPercent = 100.f;
+
+	/// World time his state last changed
+	float StateEnteredTime = 0.f;
+
+	TArray<TWeakObjectPtr<AActor>> LivingAdds;
+	TArray<TWeakObjectPtr<AActor>> LivingTotems;
+
+	/// Stats already warned about (so the log isn't spammed)
+	mutable TSet<FName> WarnedUnlinkedStats;
 };

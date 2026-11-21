@@ -14,8 +14,9 @@ void UEnemyUIComponent::RemoveEnemyDrawnWidgetsIfAny()
 {
 	for (UGodsentWidgetBase* Widget : EnemyDrawnWidgets)
 	{
+		// The widget decides how it goes (the boss bar plays its hide animation first)
 		if (Widget)
-			Widget->RemoveFromParent();
+			Widget->RemoveDrawnWidget();
 	}
 
 	EnemyDrawnWidgets.Empty();
