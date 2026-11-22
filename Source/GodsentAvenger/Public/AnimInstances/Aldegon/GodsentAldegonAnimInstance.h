@@ -35,6 +35,10 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "AnimData|Aldegon")
 	bool bIsFlying = false;
 
+	/// A right-hand claw is playing: drives the Mirror node after the slot (ClawLeft played mirrored)
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "AnimData|Aldegon")
+	bool bMirrorAttack = false;
+
 private:
 	UPROPERTY()
 	TObjectPtr<UGodsentAldegonComponent> AldegonComponent;

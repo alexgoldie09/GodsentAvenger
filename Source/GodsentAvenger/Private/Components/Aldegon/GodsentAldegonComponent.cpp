@@ -7,6 +7,8 @@
 #include "Animation/AnimMontage.h"
 #include "Characters/GodsentEnemyCharacter.h"
 #include "Components/Flight/GodsentFlightComponent.h"
+#include "Components/Combat/EnemyCombatComponent.h"
+#include "GameplayEffect.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/Ghost/GodsentHoverComponent.h"
 #include "GameFramework/Character.h"
@@ -43,6 +45,7 @@ UGodsentAldegonComponent::UGodsentAldegonComponent()
 	ClawAbilityTag = GodsentGameplayTags::Enemy_Ability_Aldegon_Claw;
 	SummonAbilityTag = GodsentGameplayTags::Enemy_Ability_Aldegon_Summon;
 	CancelOnFightEndTags.AddTag(GodsentGameplayTags::Enemy_Ability_Aldegon);
+	CancelOnKnockbackTags.AddTag(GodsentGameplayTags::Enemy_Ability_Aldegon);
 	LifeSiphonAbilityTag = GodsentGameplayTags::Enemy_Ability_Aldegon_LifeSiphon;
 	ClawResetAbilityTags.AddTag(GodsentGameplayTags::Enemy_Ability_Aldegon_SoulBeam);
 	ClawResetAbilityTags.AddTag(GodsentGameplayTags::Enemy_Ability_Aldegon_DeathWave);
@@ -101,6 +104,7 @@ void UGodsentAldegonComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		World->GetTimerManager().ClearTimer(RiseTimerHandle);
 		World->GetTimerManager().ClearTimer(HoverTimerHandle);
+		World->GetTimerManager().ClearTimer(KnockdownTimerHandle);
 	}
 
 	if (OwnerCharacter)
@@ -200,7 +204,7 @@ bool UGodsentAldegonComponent::Wake()
 
 bool UGodsentAldegonComponent::TakeOff()
 {
-	if (CurrentState != EGodsentAldegonState::Grounded || !FlightComponent)
+	if (CurrentState != EGodsentAldegonState::Grounded || bKnockedDown || !FlightComponent)
 		return false;
 
 	SetState(EGodsentAldegonState::TakingOff);
@@ -210,7 +214,7 @@ bool UGodsentAldegonComponent::TakeOff()
 
 bool UGodsentAldegonComponent::FlyTo(const FVector& Destination)
 {
-	if (CurrentState != EGodsentAldegonState::Airborne || !FlightComponent)
+	if (CurrentState != EGodsentAldegonState::Airborne || bKnockedDown || !FlightComponent)
 		return false;
 
 	return FlightComponent->FlyTo(Destination);
@@ -218,7 +222,7 @@ bool UGodsentAldegonComponent::FlyTo(const FVector& Destination)
 
 bool UGodsentAldegonComponent::LandAt(const FVector& Spot)
 {
-	if (CurrentState != EGodsentAldegonState::Airborne || !FlightComponent)
+	if (CurrentState != EGodsentAldegonState::Airborne || bKnockedDown || !FlightComponent)
 		return false;
 
 	if (!FlightComponent->LandAt(Spot))
@@ -429,6 +433,14 @@ void UGodsentAldegonComponent::OnMovementModeChanged(ACharacter* Character, EMov
 	if (CurrentState == EGodsentAldegonState::Dead || !OwnerCharacter)
 		return;
 
+	// Just launched (knockback): drop whatever move he's in the middle of
+	const bool bJustLaunched = OwnerCharacter->GetCharacterMovement()->IsFalling() && PrevMovementMode != MOVE_Falling;
+	const bool bInFight = CurrentState == EGodsentAldegonState::Grounded || CurrentState == EGodsentAldegonState::TakingOff
+		|| CurrentState == EGodsentAldegonState::Airborne || CurrentState == EGodsentAldegonState::Landing;
+
+	if (bJustLaunched && bInFight)
+		StartKnockdown();
+
 	// Knocked out of the air (e.g. Heal's knockback): he lands wherever he comes down
 	const bool bLandedFromFall = PrevMovementMode == MOVE_Falling && OwnerCharacter->GetCharacterMovement()->IsMovingOnGround();
 	const bool bWasUp = CurrentState == EGodsentAldegonState::Airborne || CurrentState == EGodsentAldegonState::TakingOff
@@ -436,6 +448,17 @@ void UGodsentAldegonComponent::OnMovementModeChanged(ACharacter* Character, EMov
 
 	if (bLandedFromFall && bWasUp)
 		SetState(EGodsentAldegonState::Grounded);
+
+	// Back on the floor: give him a moment before he does anything
+	if (bLandedFromFall && bKnockedDown)
+	{
+		const float RecoveryTime = ReadStat(KnockdownRecoveryTime, TEXT("Knockdown Recovery Time"));
+
+		if (RecoveryTime > 0.f)
+			GetWorld()->GetTimerManager().SetTimer(KnockdownTimerHandle, FTimerDelegate::CreateUObject(this, &ThisClass::EndKnockdown), RecoveryTime, false);
+		else
+			EndKnockdown();
+	}
 
 	// Knocked down on the way home: carry on home
 	if (bLandedFromFall && CurrentState == EGodsentAldegonState::ReturningHome && FlightComponent)
@@ -459,6 +482,9 @@ void UGodsentAldegonComponent::OnDeadTagChanged(const FGameplayTag Tag, int32 Ne
 		HoverComponent->SetHoverActive(false);
 
 	SetState(EGodsentAldegonState::Dead);
+
+	// After the drop, which counts as a launch while he's still up
+	EndKnockdown();
 
 	// His adds and totems die with him
 	KillAllSummons();
@@ -551,6 +577,7 @@ void UGodsentAldegonComponent::EndFight()
 			ASC->CancelAbilities(&CancelOnFightEndTags);
 	}
 
+	EndKnockdown();
 	KillAllSummons();
 	ReturnHome();
 
@@ -597,14 +624,26 @@ void UGodsentAldegonComponent::SetFrenzy(bool bNewFrenzied)
 
 	bFrenzied = bNewFrenzied;
 
+	UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwnerCharacter);
+
 	if (bFrenzied)
 	{
 		UGodsentFunctionLibrary::AddGameplayTagToActorIfNone(OwnerCharacter, GodsentGameplayTags::Enemy_Status_Frenzy);
+
+		// Faster attacks (GE_Aldegon_Frenzy raises Attack Speed)
+		if (ASC && FrenzyEffect)
+			FrenzyEffectHandle = ASC->ApplyGameplayEffectToSelf(FrenzyEffect->GetDefaultObject<UGameplayEffect>(), GetStatLevel(), ASC->MakeEffectContext());
+
 		OnFrenzyStarted.Broadcast();
 	}
 	else
 	{
 		UGodsentFunctionLibrary::RemoveGameplayTagFromActorIfFound(OwnerCharacter, GodsentGameplayTags::Enemy_Status_Frenzy);
+
+		if (ASC && FrenzyEffectHandle.IsValid())
+			ASC->RemoveActiveGameplayEffect(FrenzyEffectHandle);
+
+		FrenzyEffectHandle.Invalidate();
 	}
 }
 
@@ -659,6 +698,44 @@ void UGodsentAldegonComponent::OnAbilityEnded(const FAbilityEndedData& AbilityEn
 		++ConsecutiveClaws;
 	else if (AbilityTags.HasAny(ClawResetAbilityTags))
 		ConsecutiveClaws = 0;
+}
+
+// ---- Knockdown ----
+
+void UGodsentAldegonComponent::StartKnockdown()
+{
+	// Knocked again before he recovered: wait for this landing instead
+	GetWorld()->GetTimerManager().ClearTimer(KnockdownTimerHandle);
+
+	UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwnerCharacter);
+
+	if (ASC && !CancelOnKnockbackTags.IsEmpty())
+	{
+		ASC->CancelAbilities(&CancelOnKnockbackTags);
+
+		// Blocking is counted, so only block once per knockdown
+		if (!bKnockedDown)
+			ASC->BlockAbilitiesWithTags(CancelOnKnockbackTags);
+	}
+
+	bKnockedDown = true;
+}
+
+void UGodsentAldegonComponent::EndKnockdown()
+{
+	if (UWorld* World = GetWorld())
+		World->GetTimerManager().ClearTimer(KnockdownTimerHandle);
+
+	if (!bKnockedDown)
+		return;
+
+	bKnockedDown = false;
+
+	if (UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwnerCharacter))
+	{
+		if (!CancelOnKnockbackTags.IsEmpty())
+			ASC->UnBlockAbilitiesWithTags(CancelOnKnockbackTags);
+	}
 }
 
 // ---- What the behaviour tree reads ----
@@ -830,4 +907,60 @@ void UGodsentAldegonComponent::KillAllSummons()
 
 	LivingAdds.Reset();
 	LivingTotems.Reset();
+}
+
+// ---- Moves ----
+
+bool UGodsentAldegonComponent::BeginClaw()
+{
+	// First claw of a streak: either hand. After that: always the other hand.
+	bClawMirrored = ConsecutiveClaws == 0 ? FMath::RandBool() : !bLastClawMirrored;
+	bLastClawMirrored = bClawMirrored;
+
+	if (UEnemyCombatComponent* CombatComponent = OwnerCharacter ? OwnerCharacter->FindComponentByClass<UEnemyCombatComponent>() : nullptr)
+		CombatComponent->SetHandsMirrored(bClawMirrored);
+
+	// Frenzy: can't be blocked (the melee base sees the tag and plays the unblockable warning)
+	bClawAddedUnblockable = false;
+
+	if (bFrenzied && !UGodsentFunctionLibrary::NativeDoesActorHaveTag(OwnerCharacter, GodsentGameplayTags::Enemy_Status_Unblockable))
+	{
+		UGodsentFunctionLibrary::AddGameplayTagToActorIfNone(OwnerCharacter, GodsentGameplayTags::Enemy_Status_Unblockable);
+		bClawAddedUnblockable = true;
+	}
+
+	return bClawMirrored;
+}
+
+void UGodsentAldegonComponent::EndClaw()
+{
+	bClawMirrored = false;
+
+	if (UEnemyCombatComponent* CombatComponent = OwnerCharacter ? OwnerCharacter->FindComponentByClass<UEnemyCombatComponent>() : nullptr)
+	{
+		// Cut off mid-swing: don't leave a hand box on
+		CombatComponent->DisableBothHandBoxes();
+		CombatComponent->SetHandsMirrored(false);
+	}
+
+	if (bClawAddedUnblockable)
+	{
+		UGodsentFunctionLibrary::RemoveGameplayTagFromActorIfFound(OwnerCharacter, GodsentGameplayTags::Enemy_Status_Unblockable);
+		bClawAddedUnblockable = false;
+	}
+}
+
+int32 UGodsentAldegonComponent::GetDeathWaveCount() const
+{
+	const float HealthPercent = GetHealthPercent();
+	int32 WaveCount = 1;
+
+	for (const float Threshold : DeathWaveThresholds)
+	{
+		if (HealthPercent <= Threshold)
+			++WaveCount;
+	}
+
+	const int32 MaxWaves = FMath::Max(FMath::RoundToInt(ReadStat(MaxDeathWaves, TEXT("Max Death Waves"))), 1);
+	return FMath::Clamp(WaveCount, 1, MaxWaves);
 }

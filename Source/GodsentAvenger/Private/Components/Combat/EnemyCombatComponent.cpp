@@ -58,6 +58,10 @@ void UEnemyCombatComponent::ToggleBodyCollisionBoxCollision(bool bShouldEnable, 
 	UBoxComponent* RightHandCollisionBox = OwningEnemyCharacter->GetRightHandCollisionBox();
 	check(LeftHandCollisionBox && RightHandCollisionBox);
 
+	// Mirrored attack: the animation's left hand is really the right one
+	if (bHandsMirrored)
+		Swap(LeftHandCollisionBox, RightHandCollisionBox);
+
 	switch (ToggleDamageType)
 	{
 	case EToggleDamageType::LeftHand:
@@ -74,4 +78,23 @@ void UEnemyCombatComponent::ToggleBodyCollisionBoxCollision(bool bShouldEnable, 
 
 	if (!bShouldEnable)
 		OverlappedActors.Empty();
+}
+
+void UEnemyCombatComponent::SetHandsMirrored(bool bMirrored)
+{
+	bHandsMirrored = bMirrored;
+}
+
+void UEnemyCombatComponent::DisableBothHandBoxes()
+{
+	if (const AGodsentEnemyCharacter* OwningEnemyCharacter = GetOwningPawn<AGodsentEnemyCharacter>())
+	{
+		if (UBoxComponent* LeftHandCollisionBox = OwningEnemyCharacter->GetLeftHandCollisionBox())
+			LeftHandCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		if (UBoxComponent* RightHandCollisionBox = OwningEnemyCharacter->GetRightHandCollisionBox())
+			RightHandCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	OverlappedActors.Empty();
 }

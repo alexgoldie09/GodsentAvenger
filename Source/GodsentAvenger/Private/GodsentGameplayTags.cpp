@@ -114,6 +114,9 @@ namespace GodsentGameplayTags
 
 	/** Enemy Event Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Event_SummonEnemies, "Enemy.Event.SummonEnemies");
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Event_Aldegon_BeamStart, "Enemy.Event.Aldegon.BeamStart");   // Soul Beam montage: the beam starts firing
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Event_Aldegon_BeamEnd, "Enemy.Event.Aldegon.BeamEnd");       // Soul Beam montage: the beam stops
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Event_Aldegon_DeathWave, "Enemy.Event.Aldegon.DeathWave");   // Burst / BurstAgain montage: drop a ring
 
 	/** Shared Event Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Shared_Event_MeleeHit, "Shared.Event.MeleeHit");

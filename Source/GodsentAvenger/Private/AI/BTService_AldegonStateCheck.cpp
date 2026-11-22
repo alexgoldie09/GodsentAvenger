@@ -33,12 +33,14 @@ UBTService_AldegonStateCheck::UBTService_AldegonStateCheck()
 	OutShouldTakeOffKey.AddBoolFilter(this, GET_MEMBER_NAME_CHECKED(ThisClass, OutShouldTakeOffKey));
 	OutInClawRangeKey.AddBoolFilter(this, GET_MEMBER_NAME_CHECKED(ThisClass, OutInClawRangeKey));
 	OutIsFrenziedKey.AddBoolFilter(this, GET_MEMBER_NAME_CHECKED(ThisClass, OutIsFrenziedKey));
+	OutIsKnockedDownKey.AddBoolFilter(this, GET_MEMBER_NAME_CHECKED(ThisClass, OutIsKnockedDownKey));
 	OutLivingAddsKey.AddIntFilter(this, GET_MEMBER_NAME_CHECKED(ThisClass, OutLivingAddsKey));
 	OutLivingTotemsKey.AddIntFilter(this, GET_MEMBER_NAME_CHECKED(ThisClass, OutLivingTotemsKey));
 	OutConsecutiveClawsKey.AddIntFilter(this, GET_MEMBER_NAME_CHECKED(ThisClass, OutConsecutiveClawsKey));
 
 	OutInClawRangeKey.AllowNoneAsValue(true);
 	OutIsFrenziedKey.AllowNoneAsValue(true);
+	OutIsKnockedDownKey.AllowNoneAsValue(true);
 	OutLivingAddsKey.AllowNoneAsValue(true);
 	OutLivingTotemsKey.AllowNoneAsValue(true);
 	OutConsecutiveClawsKey.AllowNoneAsValue(true);
@@ -56,6 +58,7 @@ void UBTService_AldegonStateCheck::InitializeFromAsset(UBehaviorTree& Asset)
 		OutShouldTakeOffKey.ResolveSelectedKey(*BBAsset);
 		OutInClawRangeKey.ResolveSelectedKey(*BBAsset);
 		OutIsFrenziedKey.ResolveSelectedKey(*BBAsset);
+		OutIsKnockedDownKey.ResolveSelectedKey(*BBAsset);
 		OutLivingAddsKey.ResolveSelectedKey(*BBAsset);
 		OutLivingTotemsKey.ResolveSelectedKey(*BBAsset);
 		OutConsecutiveClawsKey.ResolveSelectedKey(*BBAsset);
@@ -135,6 +138,7 @@ void UBTService_AldegonStateCheck::TickNode(UBehaviorTreeComponent& OwnerComp, u
 	SetBoolIfSet(*Blackboard, OutShouldTakeOffKey, bShouldTakeOff);
 	SetBoolIfSet(*Blackboard, OutInClawRangeKey, Target && DistanceToTarget <= Aldegon->GetClawRange());
 	SetBoolIfSet(*Blackboard, OutIsFrenziedKey, Aldegon->IsFrenzied());
+	SetBoolIfSet(*Blackboard, OutIsKnockedDownKey, Aldegon->IsKnockedDown());
 	SetIntIfSet(*Blackboard, OutLivingAddsKey, LivingAdds);
 	SetIntIfSet(*Blackboard, OutLivingTotemsKey, LivingTotems);
 	SetIntIfSet(*Blackboard, OutConsecutiveClawsKey, ConsecutiveClaws);

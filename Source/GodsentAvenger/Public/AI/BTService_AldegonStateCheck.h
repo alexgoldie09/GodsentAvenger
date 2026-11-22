@@ -61,6 +61,10 @@ class GODSENTAVENGER_API UBTService_AldegonStateCheck : public UBTService
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector OutIsFrenziedKey;
 
+	/// Bool, normally IsKnockedDown. None to skip.
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	FBlackboardKeySelector OutIsKnockedDownKey;
+
 	/// Int, normally LivingAdds. None to skip.
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	FBlackboardKeySelector OutLivingAddsKey;

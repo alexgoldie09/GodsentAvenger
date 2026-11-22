@@ -146,6 +146,9 @@ namespace GodsentGameplayTags
 
 	/** Enemy Event Tags **/
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Enemy_Event_SummonEnemies);
+	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Enemy_Event_Aldegon_BeamStart);
+	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Enemy_Event_Aldegon_BeamEnd);
+	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Enemy_Event_Aldegon_DeathWave);
 
 	/** Shared Event Tags **/
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Shared_Event_MeleeHit);

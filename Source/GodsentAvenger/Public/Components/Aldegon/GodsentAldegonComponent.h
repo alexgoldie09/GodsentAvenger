@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "GameplayTagContainer.h"
 #include "ScalableFloat.h"
+#include "ActiveGameplayEffectHandle.h"
 #include "GodsentTypes/GodsentEnumTypes.h"
 #include "GodsentAldegonComponent.generated.h"
 
@@ -13,6 +14,7 @@ class ACharacter;
 class UAnimMontage;
 class UGodsentFlightComponent;
 class UGodsentHoverComponent;
+class UGameplayEffect;
 struct FAbilityEndedData;
 struct FOnAttributeChangeData;
 
@@ -137,6 +139,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Fight")
 	bool IsFrenzied() const { return bFrenzied; }
 
+	/// Knocked back: from the launch until Knockdown Recovery Time after he lands. No moves or flight orders.
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Fight")
+	bool IsKnockedDown() const { return bKnockedDown; }
+
 	/// Seconds since his state last changed
 	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Fight")
 	float GetTimeInState() const;
@@ -187,6 +193,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Aldegon|Summons")
 	void KillAllSummons();
 
+	// ---- Moves (Stage 19) ----
+
+	/// Call as a claw starts (before the melee base runs). Picks the hand: random on the first claw of a streak,
+	/// then always the other hand. Mirrors the animation and hand box for the right hand, and makes it unblockable in frenzy.
+	/// Returns true for the right hand (mirrored).
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Aldegon|Moves")
+	bool BeginClaw();
+
+	/// Call as the claw ends: puts the mirror, hand boxes and unblockable tag back
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Aldegon|Moves")
+	void EndClaw();
+
+	/// ABP_Aldegon's Mirror node reads this
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Moves")
+	bool IsClawMirrored() const { return bClawMirrored; }
+
+	/// How many Death Waves in a row at his current health: 1 + each Death Wave Threshold he's at or below, capped by Max Death Waves
+	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Moves")
+	int32 GetDeathWaveCount() const;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -231,6 +257,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
 	FScalableFloat MinAirborneTime = 1.f;
 
+	/// After a knockback lands him, he waits this long before doing anything (s)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
+	FScalableFloat KnockdownRecoveryTime = 1.f;
+
 	/// Claws in a row before he lifts off. 0 = no limit.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
 	FScalableFloat MaxConsecutiveClaws = 1.f;
@@ -255,11 +285,23 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
 	FScalableFloat ClawRange = 1.f;
 
+	/// Most Death Waves in one combo (Andre: "up to 3 times")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
+	FScalableFloat MaxDeathWaves = 1.f;
+
 	// ---- Fight rules (not per level, so these live here rather than the curve table) ----
 
 	/// Health % checkpoints. Crossing one while grounded makes him lift off. Add, remove or space them however you like.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight")
 	TArray<float> LiftOffHealthBands = { 90.f, 80.f, 70.f, 60.f, 50.f, 40.f, 30.f, 20.f, 10.f };
+
+	/// Health % at which his Death Wave combo gets one wave longer (at or below each). Capped by Max Death Waves.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight")
+	TArray<float> DeathWaveThresholds = { 75.f, 50.f };
+
+	/// Applied while frenzied (GE_Aldegon_Frenzy: raises Attack Speed, so claws, Death Wave and summons come faster)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight")
+	TSubclassOf<UGameplayEffect> FrenzyEffect;
 
 	/// Ending one of these counts as a Claw
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight", meta = (Categories = "Enemy.Ability"))
@@ -276,6 +318,10 @@ protected:
 	/// Moves with any of these are cancelled when the player leaves the arena (so he doesn't fly home mid-Beam)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight", meta = (Categories = "Enemy.Ability"))
 	FGameplayTagContainer CancelOnFightEndTags;
+
+	/// Moves with any of these are cancelled when he's knocked back (launched off the ground or out of the air)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight", meta = (Categories = "Enemy.Ability"))
+	FGameplayTagContainer CancelOnKnockbackTags;
 
 	/// Ending one of these resets the Claw count (anything that isn't a claw breaks the streak)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight", meta = (Categories = "Enemy.Ability"))
@@ -370,6 +416,12 @@ private:
 
 	void SetFrenzy(bool bNewFrenzied);
 
+	/// Launched: cancel his move and block new ones until he's recovered
+	void StartKnockdown();
+
+	/// Recovered (or the fight ended / he died): moves allowed again
+	void EndKnockdown();
+
 	/// Reads a stat at his level, warning once if it isn't linked to a curve table
 	float ReadStat(const FScalableFloat& Stat, const TCHAR* StatName) const;
 
@@ -396,6 +448,9 @@ private:
 
 	FTimerHandle RiseTimerHandle;
 	FTimerHandle HoverTimerHandle;
+	FTimerHandle KnockdownTimerHandle;
+
+	bool bKnockedDown = false;
 
 	FDelegateHandle DeadTagDelegateHandle;
 	FDelegateHandle HealthChangedDelegateHandle;
@@ -416,6 +471,15 @@ private:
 
 	/// World time his state last changed
 	float StateEnteredTime = 0.f;
+
+	/// Claw hands: the last claw was the right (mirrored) one
+	bool bLastClawMirrored = false;
+	bool bClawMirrored = false;
+
+	/// Added Unblockable for a frenzied claw (so End Claw only removes what Begin Claw added)
+	bool bClawAddedUnblockable = false;
+
+	FActiveGameplayEffectHandle FrenzyEffectHandle;
 
 	TArray<TWeakObjectPtr<AActor>> LivingAdds;
 	TArray<TWeakObjectPtr<AActor>> LivingTotems;

@@ -24,4 +24,5 @@ void UGodsentAldegonAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSec
 	// Not while Waking: Rise blends out into standing, not back into the seat
 	bUseThronePose = AldegonState == EGodsentAldegonState::Dormant || AldegonState == EGodsentAldegonState::SittingDown;
 	bIsFlying = AldegonComponent->IsFlying();
+	bMirrorAttack = AldegonComponent->IsClawMirrored();
 }

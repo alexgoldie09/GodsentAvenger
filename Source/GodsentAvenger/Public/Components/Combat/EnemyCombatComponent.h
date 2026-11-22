@@ -18,6 +18,16 @@ public:
 	/// Resolves block and parry; sends MeleeHit unless the hit was fully blocked or parried
 	virtual void OnHitTargetActor(AActor* HitActor) override;
 
+	/// On: notifies asking for the left hand box turn on the right one, and the other way round (a mirrored attack)
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Combat")
+	void SetHandsMirrored(bool bMirrored);
+
+	UFUNCTION(BlueprintPure, Category = "Godsent|Combat")
+	bool AreHandsMirrored() const { return bHandsMirrored; }
+
+	/// Turns both hand boxes off (e.g. a mirrored attack was cut off mid-swing)
+	void DisableBothHandBoxes();
+
 protected:
 	/// Turns the left or right hand collision box on or off
 	virtual void ToggleBodyCollisionBoxCollision(bool bShouldEnable, EToggleDamageType ToggleDamageType) override;
@@ -25,4 +35,7 @@ protected:
 	/// How directly the hero must face the attacker for a block to count (dot product of forward vectors)
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	float BlockFacingThreshold = -0.1f;
+
+private:
+	bool bHandsMirrored = false;
 };
