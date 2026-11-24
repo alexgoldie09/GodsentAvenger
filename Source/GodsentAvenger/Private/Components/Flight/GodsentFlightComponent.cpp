@@ -13,6 +13,9 @@ namespace
 	/// No ground found
 	constexpr float FlightNoGround = -1.f;
 
+	/// Coming down slower than this much per check counts as stuck (cm)
+	constexpr float FlightDescentStallTolerance = 1.f;
+
 	const FName FlightGroundTraceTag = TEXT("GodsentFlightGround");
 }
 
@@ -211,9 +214,15 @@ void UGodsentFlightComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	if (bArrived)
 	{
 		if (CurrentAction == EGodsentFlightAction::FlyTo)
+		{
 			FinishAction(true);
+		}
 		else
+		{
 			bDescending = true;
+			LastDescentZ = GetCapsuleBottomZ();
+			DescentStallTimer = 0.f;
+		}
 	}
 
 	// Remember the ground so a missed trace (a gap, odd collision) doesn't leave him not knowing his height
@@ -248,7 +257,7 @@ void UGodsentFlightComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	}
 
 	// Touched down: back to walking
-	if (bDescending && HeightAboveGround != FlightNoGround && HeightAboveGround <= TouchDownHeight)
+	if (bDescending && HasTouchedDown(HeightAboveGround, DeltaTime))
 	{
 		StopFlying();
 		FinishAction(true);
@@ -386,6 +395,41 @@ void UGodsentFlightComponent::ClearAction()
 	Route.Reset();
 	RouteIndex = 0;
 	bDescending = false;
+	DescentStallTimer = 0.f;
+}
+
+bool UGodsentFlightComponent::HasTouchedDown(float HeightAboveGround, float DeltaTime)
+{
+	// Close to the ground the trace sees
+	if (HeightAboveGround != FlightNoGround && HeightAboveGround <= TouchDownHeight)
+		return true;
+
+	// The floor his capsule would actually stand on: a step, or floor collision sitting above what the trace sees
+	FFindFloorResult FloorResult;
+	MovementComponent->FindFloor(MovementComponent->UpdatedComponent->GetComponentLocation(), FloorResult, false);
+
+	if (FloorResult.IsWalkableFloor() && FloorResult.GetDistanceToFloor() <= TouchDownHeight)
+		return true;
+
+	// Still dropping: reset the stuck timer
+	const float CapsuleBottomZ = GetCapsuleBottomZ();
+
+	if (LastDescentZ - CapsuleBottomZ > FlightDescentStallTolerance)
+	{
+		LastDescentZ = CapsuleBottomZ;
+		DescentStallTimer = 0.f;
+		return false;
+	}
+
+	// Blocked by something he can't stand on: land where he is rather than hang in the air
+	DescentStallTimer += DeltaTime;
+
+	if (DescentStallTimer < DescentStallTime)
+		return false;
+
+	UE_LOG(LogTemp, Warning, TEXT("%s: Flight landing was blocked %.0f cm above the ground trace, landed where he is (check the floor's collision under him)"),
+		*GetNameSafe(OwnerCharacter), HeightAboveGround);
+	return true;
 }
 
 void UGodsentFlightComponent::FinishAction(bool bSucceeded)

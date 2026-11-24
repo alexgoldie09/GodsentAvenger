@@ -11,6 +11,7 @@
 #include "GameFramework/Character.h"
 #include "GodsentGameplayTags.h"
 #include "Items/Aldegon/GodsentDeathWaveRing.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 namespace
 {
@@ -120,16 +121,23 @@ void UGodsentAldegonAbility_DeathWave::SpawnRing()
 	if (!Character || !ASC || !RingClass)
 		return;
 
-	// Dropped on the floor under him (he floats a little above it)
+	// Dropped on the floor under him (he floats a little above it, but his capsule is on the floor)
 	const float CapsuleHalfHeight = Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	FVector RingLocation = Character->GetActorLocation() - FVector(0.f, 0.f, CapsuleHalfHeight);
 
-	FHitResult GroundHit;
-	FCollisionQueryParams Params(DeathWaveGroundTraceTag, false, Character);
-	const FVector TraceEnd = Character->GetActorLocation() - FVector(0.f, 0.f, CapsuleHalfHeight + GroundSearchDistance);
+	// Standing on something: that's the floor (a trace could go through a floor it can't see and find one underneath)
+	const UCharacterMovementComponent* Movement = Character->GetCharacterMovement();
+	const bool bOnFloor = Movement && Movement->IsMovingOnGround() && Movement->CurrentFloor.bBlockingHit;
 
-	if (GetWorld()->LineTraceSingleByObjectType(GroundHit, Character->GetActorLocation(), TraceEnd, FCollisionObjectQueryParams(GroundObjectType.GetValue()), Params))
-		RingLocation = GroundHit.ImpactPoint;
+	if (!bOnFloor)
+	{
+		FHitResult GroundHit;
+		FCollisionQueryParams Params(DeathWaveGroundTraceTag, false, Character);
+		const FVector TraceEnd = Character->GetActorLocation() - FVector(0.f, 0.f, CapsuleHalfHeight + GroundSearchDistance);
+
+		if (GetWorld()->LineTraceSingleByObjectType(GroundHit, Character->GetActorLocation(), TraceEnd, FCollisionObjectQueryParams(GroundObjectType.GetValue()), Params))
+			RingLocation = GroundHit.ImpactPoint;
+	}
 
 	const float Level = GetAbilityLevel();
 	const FGameplayEffectSpecHandle DamageSpec = MakeMoveDamageSpec(Damage, bMagicDamage, bCausesHitStun);

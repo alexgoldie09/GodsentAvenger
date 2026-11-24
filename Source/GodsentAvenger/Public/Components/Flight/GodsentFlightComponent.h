@@ -134,6 +134,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Flight", meta = (ClampMin = "0.0", Units = "cm"))
 	float TouchDownHeight = 5.f;
 
+	/// Coming down but blocked this long (by something he can't stand on): lands where he is instead of hanging there
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Flight", meta = (ClampMin = "0.0", Units = "s"))
+	float DescentStallTime = 0.5f;
+
 	/// How far down it looks for the ground
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Flight", meta = (ClampMin = "0.0", Units = "cm"))
 	float GroundTraceDistance = 5000.f;
@@ -163,6 +167,9 @@ private:
 
 	/// Forgets the current action without telling anyone
 	void ClearAction();
+
+	/// Coming down: close to the traced ground, on a floor his capsule can stand on, or stuck on the way down
+	bool HasTouchedDown(float HeightAboveGround, float DeltaTime);
 
 	/// Finishes the current action and tells listeners
 	void FinishAction(bool bSucceeded);
@@ -205,6 +212,10 @@ private:
 
 	/// Land At: over the spot and coming down
 	bool bDescending = false;
+
+	/// Coming down: lowest the capsule has got, and how long it's been stuck there
+	float LastDescentZ = 0.f;
+	float DescentStallTimer = 0.f;
 
 	/// Set while this component is the one changing the movement mode (so it doesn't fail its own action)
 	bool bChangingModeItself = false;
