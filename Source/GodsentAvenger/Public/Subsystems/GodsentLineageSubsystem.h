@@ -268,6 +268,22 @@ public:
 	/// Called by the save popup's buttons
 	void HandleSavePopupChoice(UGodsentSavePopupWidget* Popup, bool bPrimary);
 
+	// ---- Bosses ----
+
+	/// True once this boss has ever been beaten on this save, by any family (the main menu's star). Survives New Game.
+	UFUNCTION(BlueprintPure, Category = "Godsent|Bosses", meta = (GameplayTagFilter = "GameData.Boss"))
+	bool HasDefeatedBoss(FGameplayTag BossTag) const { return BossTag.IsValid() && DefeatedBosses.HasTagExact(BossTag); }
+
+	/// Every boss ever beaten on this save
+	UFUNCTION(BlueprintPure, Category = "Godsent|Bosses")
+	FGameplayTagContainer GetDefeatedBosses() const { return DefeatedBosses; }
+
+	/// A boss was beaten: remembered and saved straight away (so quitting on the win screen still keeps it)
+	void RecordBossDefeated(const FGameplayTag& BossTag);
+
+	/// Debug: forgets every beaten boss and saves (GodsentClearDefeatedBosses)
+	void DebugClearDefeatedBosses();
+
 	/// Prints the lineage to the log without saving (GodsentPrintLineage)
 	void LogLineage() const;
 
@@ -301,6 +317,9 @@ private:
 	bool OpenLevelByTag(UWorld* World, const FGameplayTag& LevelTag, FText* OutReason = nullptr) const;
 
 	FGodsentLineageData LineageData;
+
+	/// Bosses ever beaten on this save. Not part of the lineage, so New Game keeps it.
+	FGameplayTagContainer DefeatedBosses;
 
 	/// Set by Open Main Menu To Customiser, read once by the main menu. Runtime only, never saved.
 	bool bOpenCustomiserOnMenuLoad = false;

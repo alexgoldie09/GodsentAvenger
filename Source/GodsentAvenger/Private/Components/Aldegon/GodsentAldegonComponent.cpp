@@ -19,6 +19,8 @@
 #include "Controllers/GodsentAIController.h"
 #include "GameplayEffectTypes.h"
 #include "GodsentFunctionLibrary.h"
+#include "GameModes/GodsentBaseGameMode.h"
+#include "Subsystems/GodsentLineageSubsystem.h"
 #include "TimerManager.h"
 
 namespace
@@ -55,6 +57,7 @@ UGodsentAldegonComponent::UGodsentAldegonComponent()
 	CancelOnFightEndTags.AddTag(GodsentGameplayTags::Enemy_Ability_Aldegon);
 	CancelOnKnockbackTags.AddTag(GodsentGameplayTags::Enemy_Ability_Aldegon);
 	LifeSiphonAbilityTag = GodsentGameplayTags::Enemy_Ability_Aldegon_LifeSiphon;
+	BossTag = GodsentGameplayTags::GameData_Boss_Aldegon;
 	ClawResetAbilityTags.AddTag(GodsentGameplayTags::Enemy_Ability_Aldegon_SoulBeam);
 	ClawResetAbilityTags.AddTag(GodsentGameplayTags::Enemy_Ability_Aldegon_DeathWave);
 
@@ -507,6 +510,16 @@ void UGodsentAldegonComponent::OnDeadTagChanged(const FGameplayTag Tag, int32 Ne
 	{
 		bFightActive = false;
 		OnFightEnded.Broadcast(EGodsentBossFightEnd::BossDefeated);
+	}
+
+	// Remembered for the main menu (saved straight away), then the run is won
+	if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
+		Lineage->RecordBossDefeated(BossTag);
+
+	if (bWinRunOnDefeat)
+	{
+		if (AGodsentBaseGameMode* GameMode = AGodsentBaseGameMode::Get(this))
+			GameMode->HandleRunWon();
 	}
 }
 

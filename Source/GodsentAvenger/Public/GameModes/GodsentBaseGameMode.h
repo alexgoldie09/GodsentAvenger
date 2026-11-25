@@ -8,6 +8,7 @@
 #include "GodsentBaseGameMode.generated.h"
 
 class AGodsentHeroController;
+class UGodsentLineageSubsystem;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRunStateChangedDelegate, EGodsentRunState, NewState);
 
@@ -19,6 +20,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRunStateChangedDelegate, EGodsent
  *
  *   Level loads → (Heir Name Prompt Delay) → name prompt → rebirth skill tree (every heir after the founder) → play
  *   Heir dies   → death recorded on the lineage → (Lose Screen Delay) → lose screen
+ *   Boss beaten → boss saved as defeated → (Win Screen Delay) → win screen (Fight Again keeps the heir; Main Menu)
  *
  * Side modes (the DLC) untick Tracks Lineage: the current heir plays with the family's skills, but there's no name prompt,
  * deaths don't move the family on, and the level is never remembered for Continue.
@@ -54,10 +56,15 @@ public:
 	/// The heir gained the Dead tag
 	void HandleHeroDefeated(AGodsentHeroController* HeroController);
 
-	/// The level was won (e.g. call it from Aldegon's death). Shows the win screen after Win Screen Delay.
-	/// Doesn't change the lineage; what winning means for the family is still to be decided.
+	/// The level was won (Aldegon's death calls this). Shows the win screen after Win Screen Delay.
+	/// Doesn't change the lineage: same heir, same generation, no death recorded.
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Run")
 	void HandleRunWon();
+
+	/// Win screen's Fight Again: reloads the level with the same heir (no name prompt, no customiser, not a death).
+	/// A side mode (Tracks Lineage off) reopens its own level, re-checking add-on ownership.
+	UFUNCTION(BlueprintCallable, Category = "Godsent|Run")
+	void FightAgain();
 
 	/// Lose screen's Try Again: the main game goes to the menu map's customiser for the next heir, then reopens the
 	/// lineage's last level (name prompt, skill tree); a side mode (Tracks Lineage off) reopens its own level, re-checking add-on ownership
@@ -89,6 +96,9 @@ protected:
 private:
 	/// Add-on levels: false (and back to the main menu) if this level needs an add-on the player doesn't own
 	bool CheckLevelOwnership();
+
+	/// Side modes: reopens this level (ownership checked again), or the main menu if that's refused
+	void ReopenThisLevel(UGodsentLineageSubsystem* Lineage);
 
 	void ShowHeirNamePrompt(AGodsentHeroController* HeroController);
 

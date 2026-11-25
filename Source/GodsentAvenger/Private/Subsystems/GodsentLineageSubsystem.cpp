@@ -122,11 +122,15 @@ void UGodsentLineageSubsystem::LogLineage() const
 		LineageData.bAwaitingHeirName ? TEXT(", awaiting heir name") : TEXT(""),
 		LineageData.bAwaitingCustomisation ? TEXT(", awaiting customisation") : TEXT(""),
 		LineageData.bHeirRevivalUsed ? TEXT(", revival used") : TEXT(""));
+
+	UE_LOG(LogTemp, Display, TEXT("[Lineage] Defeated bosses: %s"),
+		DefeatedBosses.IsEmpty() ? TEXT("none") : *DefeatedBosses.ToStringSimple());
 }
 
 /// Resets the lineage to a brand-new family and saves it, replacing the old family (or a damaged save)
 void UGodsentLineageSubsystem::StartNewGame()
 {
+	// A new family; the bosses beaten (the menu's stars) stay
 	LineageData = FGodsentLineageData();
 	LoadResult = EGodsentSaveLoadResult::NoSave;
 	BroadcastLineageChanged();
@@ -289,6 +293,23 @@ void UGodsentLineageSubsystem::RecordHeirDeath()
 	CommitProgress();
 }
 
+void UGodsentLineageSubsystem::RecordBossDefeated(const FGameplayTag& BossTag)
+{
+	if (!BossTag.IsValid())
+		return;
+
+	DefeatedBosses.AddTag(BossTag);
+	UE_LOG(LogTemp, Display, TEXT("[Lineage] Boss defeated: %s"), *BossTag.ToString());
+
+	CommitProgress();
+}
+
+void UGodsentLineageSubsystem::DebugClearDefeatedBosses()
+{
+	DefeatedBosses.Reset();
+	CommitProgress();
+}
+
 void UGodsentLineageSubsystem::MarkHeirRevivalUsed()
 {
 	LineageData.bHeirRevivalUsed = true;
@@ -438,6 +459,7 @@ void UGodsentLineageSubsystem::BroadcastLineageChanged()
 void UGodsentLineageSubsystem::LoadFromSaveSlot()
 {
 	LineageData = FGodsentLineageData();
+	DefeatedBosses.Reset();
 	LoadResult = EGodsentSaveLoadResult::NoSave;
 
 	if (!UGameplayStatics::DoesSaveGameExist(SaveSlotName, SaveUserIndex))
@@ -467,6 +489,7 @@ void UGodsentLineageSubsystem::LoadFromSaveSlot()
 	}
 
 	LineageData = SaveObject->Lineage;
+	DefeatedBosses = SaveObject->DefeatedBosses;   // empty for saves from before version 4
 
 	// Version 1 had no customiser: the fields load as their defaults (no look saved, customiser still to do)
 	if (SaveObject->SaveVersion < UGodsentLineageSaveGame::FirstVersionWithCustomiser)
@@ -492,6 +515,7 @@ bool UGodsentLineageSubsystem::WriteToSaveSlot() const
 
 	SaveObject->SaveVersion = UGodsentLineageSaveGame::CurrentSaveVersion;
 	SaveObject->Lineage = LineageData;
+	SaveObject->DefeatedBosses = DefeatedBosses;
 
 	TArray<uint8> Payload;
 
@@ -531,6 +555,12 @@ void UGodsentLineageSubsystem::SanitiseLoadedData()
 	// Indexes past the end of the catalogue are handled where they're used (it can change between builds)
 	LineageData.HeirAppearance.PatternIndex = FMath::Max(LineageData.HeirAppearance.PatternIndex, 0);
 	LineageData.HeirAppearance.VoiceIndex = FMath::Max(LineageData.HeirAppearance.VoiceIndex, 0);
+
+	// Only real boss tags
+	const FGameplayTag BossRoot = FGameplayTag::RequestGameplayTag(FName(TEXT("GameData.Boss")), false);
+
+	if (BossRoot.IsValid())
+		DefeatedBosses = DefeatedBosses.Filter(FGameplayTagContainer(BossRoot));
 
 	// LastLevelTag needs nothing: an unknown tag loads as empty, and Open Last Level falls back to the game map
 }

@@ -38,6 +38,10 @@ public:
 	UFUNCTION(Exec)
 	void GodsentResetRevival();
 
+	/// Forgets every beaten boss (the main menu's star) and saves, e.g. "GodsentClearDefeatedBosses"
+	UFUNCTION(Exec)
+	void GodsentClearDefeatedBosses();
+
 	/// Adds skill points, e.g. "GodsentGrantSkillPoints 24"
 	UFUNCTION(Exec)
 	void GodsentGrantSkillPoints(int32 Amount);
@@ -114,6 +118,10 @@ public:
 	/// Takes this % of his max health off, to test health bands and frenzy, e.g. "GodsentAldegonHurt 15"
 	UFUNCTION(Exec)
 	void GodsentAldegonHurt(float Percent = 10.f);
+
+	/// Kills him on the spot (his death plays, he's saved as beaten, the win screen shows), e.g. "GodsentAldegonDefeat"
+	UFUNCTION(Exec)
+	void GodsentAldegonDefeat();
 
 	// ---- Aldegon summons (Stage 20) ----
 

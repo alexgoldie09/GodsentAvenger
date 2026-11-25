@@ -126,7 +126,7 @@ void AGodsentBaseGameMode::HandleHeroDefeated(AGodsentHeroController* HeroContro
 	});
 }
 
-/// The level was won: show the win screen after the delay
+/// The level was won (Aldegon's death): show the win screen after the delay. The lineage doesn't change.
 void AGodsentBaseGameMode::HandleRunWon()
 {
 	if (RunState == EGodsentRunState::Lost || RunState == EGodsentRunState::Won)
@@ -164,7 +164,29 @@ void AGodsentBaseGameMode::RestartRun()
 		return;
 	}
 
-	// Side mode: reopen this level (ownership is checked again); main menu if that's refused
+	ReopenThisLevel(Lineage);
+}
+
+/// Win screen's Fight Again: same heir, straight back into the level (he's back on his throne)
+void AGodsentBaseGameMode::FightAgain()
+{
+	UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this);
+
+	if (!Lineage)
+		return;
+
+	// No death was recorded, so the level loads without the name prompt, skill tree or customiser (like Continue)
+	if (bTracksLineage)
+	{
+		Lineage->OpenLastLevel(this);
+		return;
+	}
+
+	ReopenThisLevel(Lineage);
+}
+
+void AGodsentBaseGameMode::ReopenThisLevel(UGodsentLineageSubsystem* Lineage)
+{
 	const UGodsentGameInstance* GodsentGameInstance = Cast<UGodsentGameInstance>(GetGameInstance());
 	const FGameplayTag ThisLevelTag = GodsentGameInstance ? GodsentGameInstance->FindLevelTagForWorld(GetWorld()) : FGameplayTag();
 

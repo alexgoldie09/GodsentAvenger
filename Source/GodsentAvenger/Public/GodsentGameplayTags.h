@@ -181,6 +181,7 @@ namespace GodsentGameplayTags
 	/** Game Data Tags **/
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameData_Level_GameMap);
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameData_Level_MainMenuMap);
+	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameData_Boss_Aldegon);
 
 	/** Skill Tree Tags (one per skill; the skill tree data asset and each skill button use these) **/
 	GODSENTAVENGER_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Skill);

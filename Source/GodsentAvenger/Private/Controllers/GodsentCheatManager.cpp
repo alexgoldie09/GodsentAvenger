@@ -8,6 +8,7 @@
 #include "Components/SkillTree/SkillTreeComponent.h"
 #include "Controllers/GodsentHeroController.h"
 #include "GameplayTagContainer.h"
+#include "GodsentFunctionLibrary.h"
 #include "GodsentGameplayTags.h"
 #include "Subsystems/GodsentLineageSubsystem.h"
 #include "Components/Aldegon/GodsentAldegonComponent.h"
@@ -66,6 +67,14 @@ void UGodsentCheatManager::GodsentResetRevival()
 		Lineage->DebugResetHeirRevival();
 
 	UE_LOG(LogTemp, Warning, TEXT("GodsentResetRevival: the current heir can revive again"));
+}
+
+void UGodsentCheatManager::GodsentClearDefeatedBosses()
+{
+	if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(GetOuterAPlayerController()))
+		Lineage->DebugClearDefeatedBosses();
+
+	UE_LOG(LogTemp, Warning, TEXT("GodsentClearDefeatedBosses: no bosses beaten on this save now"));
 }
 
 void UGodsentCheatManager::GodsentGrantSkillPoints(int32 Amount)
@@ -347,6 +356,21 @@ void UGodsentCheatManager::GodsentAldegonHurt(float Percent)
 
 	ASC->SetNumericAttributeBase(UGodsentAttributeSet::GetCurrentHealthAttribute(), NewHealth);
 	UE_LOG(LogTemp, Warning, TEXT("GodsentAldegonHurt: now %.0f%%"), Aldegon->GetHealthPercent());
+}
+
+void UGodsentCheatManager::GodsentAldegonDefeat()
+{
+	UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonDefeat"));
+	UAbilitySystemComponent* ASC = Aldegon ? UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Aldegon->GetOwner()) : nullptr;
+
+	if (!ASC)
+		return;
+
+	// Empty bar, then the same Dead tag his health running out would add (his death ability and the win follow)
+	ASC->SetNumericAttributeBase(UGodsentAttributeSet::GetCurrentHealthAttribute(), 0.f);
+	UGodsentFunctionLibrary::AddGameplayTagToActorIfNone(Aldegon->GetOwner(), GodsentGameplayTags::Shared_Status_Dead);
+
+	UE_LOG(LogTemp, Warning, TEXT("GodsentAldegonDefeat: done"));
 }
 
 // ---- Aldegon summons (Stage 20) ----

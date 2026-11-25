@@ -149,6 +149,7 @@ namespace GodsentGameplayTags
 	/** Game Data Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(GameData_Level_GameMap, "GameData.Level.GameMap");
 	UE_DEFINE_GAMEPLAY_TAG(GameData_Level_MainMenuMap, "GameData.Level.MainMenuMap");
+	UE_DEFINE_GAMEPLAY_TAG(GameData_Boss_Aldegon, "GameData.Boss.Aldegon");   // saved once he's beaten (the main menu's star)
 
 	/** Skill Tree Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Skill, "Skill");

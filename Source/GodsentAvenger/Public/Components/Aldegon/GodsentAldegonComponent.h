@@ -37,6 +37,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAldegonFrenzyStarted);
  * needs to decide what to do: health bands crossed, claws in a row, his living summons, frenzy.
  * The rules themselves live in the BT service Aldegon State Check.
  *
+ * Defeat (Stage 21): his death saves Boss Tag as beaten (the main menu's star) and, if Win Run On Defeat is on,
+ * wins the run (the game mode shows the win screen).
+ *
  * Summons (Stage 20): the Summon ability registers what it spawns here. Max Adds / Max Totems are his caps at full health,
  * and the Add / Totem Cap Steps raise them as his health drops. Health bands only count the first time he drops past them,
  * so a totem healing him back up can't make him lift off twice for the same band.
@@ -335,6 +338,16 @@ protected:
 	/// Moves with any of these are cancelled when he's knocked back (launched off the ground or out of the air)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight", meta = (Categories = "Enemy.Ability"))
 	FGameplayTagContainer CancelOnKnockbackTags;
+
+	// ---- Defeat (Stage 21) ----
+
+	/// Saved when he dies, so the main menu can show he's been beaten (survives New Game)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Defeat", meta = (Categories = "GameData.Boss"))
+	FGameplayTag BossTag;
+
+	/// His death wins the run (the win screen shows after the game mode's Win Screen Delay). Off for a boss that isn't the end of a level.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Defeat")
+	bool bWinRunOnDefeat = true;
 
 	/// Ending one of these resets the Claw count (anything that isn't a claw breaks the streak)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight", meta = (Categories = "Enemy.Ability"))
