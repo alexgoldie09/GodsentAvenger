@@ -9,6 +9,7 @@
 class AGodsentHeroController;
 class UGodsentAbilitySystemComponent;
 class UGodsentAldegonComponent;
+struct FGameplayTag;
 
 /**
  * Every Godsent debug console command lives here, not on the hero controller.
@@ -114,6 +115,20 @@ public:
 	UFUNCTION(Exec)
 	void GodsentAldegonHurt(float Percent = 10.f);
 
+	// ---- Aldegon summons (Stage 20) ----
+
+	/// Casts Summon now if he can (any state; cap and cooldown still apply)
+	UFUNCTION(Exec)
+	void GodsentAldegonSummon();
+
+	/// Casts Life Siphon now if he can (cap and cooldown still apply)
+	UFUNCTION(Exec)
+	void GodsentAldegonSiphon();
+
+	/// Kills every add and totem he has out
+	UFUNCTION(Exec)
+	void GodsentAldegonKillSummons();
+
 private:
 	AGodsentHeroController* GetHeroController() const;
 	UGodsentAbilitySystemComponent* GetHeroASC() const;
@@ -123,4 +138,7 @@ private:
 
 	/// Logs whether an Aldegon command was accepted (most only work in certain states)
 	void LogAldegonCommand(const TCHAR* CommandName, bool bAccepted, const UGodsentAldegonComponent* Aldegon) const;
+
+	/// Tries to activate one of his abilities by tag and logs the result
+	void TryAldegonAbility(const TCHAR* CommandName, const FGameplayTag& AbilityTag) const;
 };

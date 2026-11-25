@@ -105,6 +105,7 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Aldegon_SoulBeam, "Enemy.Ability.Aldegon.SoulBeam");       // grounded: tracking beam
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Aldegon_DeathWave, "Enemy.Ability.Aldegon.DeathWave");     // grounded: expanding ring
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Aldegon_Claw, "Enemy.Ability.Aldegon.Claw");               // grounded: melee (counts towards Max Consecutive Claws)
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Ability_Totem_Siphon, "Enemy.Ability.Totem.Siphon");               // bone totem: drains the player, heals Aldegon
 
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Cooldown_Aldegon_Summon, "Enemy.Cooldown.Aldegon.Summon");
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Cooldown_Aldegon_LifeSiphon, "Enemy.Cooldown.Aldegon.LifeSiphon");
@@ -113,7 +114,7 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Status_Charging, "Enemy.Status.Charging");   // running in for a heavy attack (zombie SlamRun); gates a speed effect
 
 	/** Enemy Event Tags **/
-	UE_DEFINE_GAMEPLAY_TAG(Enemy_Event_SummonEnemies, "Enemy.Event.SummonEnemies");
+	UE_DEFINE_GAMEPLAY_TAG(Enemy_Event_SummonEnemies, "Enemy.Event.SummonEnemies");           // Aldegon's Summon montage: spawn the adds / totem now
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Event_Aldegon_BeamStart, "Enemy.Event.Aldegon.BeamStart");   // Soul Beam montage: the beam starts firing
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Event_Aldegon_BeamEnd, "Enemy.Event.Aldegon.BeamEnd");       // Soul Beam montage: the beam stops
 	UE_DEFINE_GAMEPLAY_TAG(Enemy_Event_Aldegon_DeathWave, "Enemy.Event.Aldegon.DeathWave");   // Burst / BurstAgain montage: drop a ring

@@ -6,8 +6,11 @@
 #include "GameplayTagContainer.h"
 #include "ScalableFloat.h"
 #include "Templates/SubclassOf.h"
+#include "UObject/SoftObjectPath.h"
+#include "UObject/SoftObjectPtr.h"
 #include "GodsentStructTypes.generated.h"
 
+class AGodsentEnemyCharacter;
 class UGameplayEffect;
 class UGodsentHeroGameplayAbility;
 class UTexture2D;
@@ -102,4 +105,53 @@ struct FGodsentSkillNode
 
 	/// False for skills that aren't built yet (no ability and no passive)
 	bool IsImplemented() const;
+};
+
+/// One possible enemy in a weighted pool (enemy spawners and Aldegon's Summon / Life Siphon).
+/// A soft reference: the enemy Blueprint only loads when something is about to spawn it.
+USTRUCT(BlueprintType)
+struct FGodsentEnemySpawnEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
+	TSoftClassPtr<AGodsentEnemyCharacter> EnemyClass;
+
+	/// How likely this enemy is compared with the others (Zombie 3 + Ghost 1 = 75% zombies). 0 = never.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn", meta = (ClampMin = "0.0"))
+	float Weight = 1.f;
+
+	/// The class, loading it now (with a warning) if nobody loaded it ahead of time
+	TSubclassOf<AGodsentEnemyCharacter> ResolveClass() const;
+
+	/// Weighted random pick. Entries with no class or 0 weight are skipped. Null if nothing can be picked.
+	static const FGodsentEnemySpawnEntry* PickWeighted(const TArray<FGodsentEnemySpawnEntry>& Pool);
+
+	/// Every class in the pool, to load them all in one go
+	static TArray<FSoftObjectPath> GetClassPaths(const TArray<FGodsentEnemySpawnEntry>& Pool);
+
+	/// True once every class in the pool is in memory
+	static bool IsPoolLoaded(const TArray<FGodsentEnemySpawnEntry>& Pool);
+};
+
+/// Raises one of Aldegon's summon caps once his health is at or below a %
+USTRUCT(BlueprintType)
+struct FGodsentAldegonCapStep
+{
+	GENERATED_BODY()
+
+	FGodsentAldegonCapStep() = default;
+
+	FGodsentAldegonCapStep(float InAtHealthPercent, int32 InMaxAlive)
+		: AtHealthPercent(InAtHealthPercent), MaxAlive(InMaxAlive)
+	{
+	}
+
+	/// At or below this health % ...
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Cap", meta = (ClampMin = "0.0", ClampMax = "100.0", Units = "Percent"))
+	float AtHealthPercent = 50.f;
+
+	/// ... this many can be alive at once
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Cap", meta = (ClampMin = "0"))
+	int32 MaxAlive = 1;
 };

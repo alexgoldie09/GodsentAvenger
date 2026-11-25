@@ -8,6 +8,7 @@
 #include "Components/SkillTree/SkillTreeComponent.h"
 #include "Controllers/GodsentHeroController.h"
 #include "GameplayTagContainer.h"
+#include "GodsentGameplayTags.h"
 #include "Subsystems/GodsentLineageSubsystem.h"
 #include "Components/Aldegon/GodsentAldegonComponent.h"
 #include "Components/Flight/GodsentFlightComponent.h"
@@ -346,4 +347,41 @@ void UGodsentCheatManager::GodsentAldegonHurt(float Percent)
 
 	ASC->SetNumericAttributeBase(UGodsentAttributeSet::GetCurrentHealthAttribute(), NewHealth);
 	UE_LOG(LogTemp, Warning, TEXT("GodsentAldegonHurt: now %.0f%%"), Aldegon->GetHealthPercent());
+}
+
+// ---- Aldegon summons (Stage 20) ----
+
+void UGodsentCheatManager::TryAldegonAbility(const TCHAR* CommandName, const FGameplayTag& AbilityTag) const
+{
+	UGodsentAldegonComponent* Aldegon = FindAldegon(CommandName);
+	UAbilitySystemComponent* ASC = Aldegon ? UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Aldegon->GetOwner()) : nullptr;
+
+	if (!ASC)
+		return;
+
+	const bool bActivated = ASC->TryActivateAbilitiesByTag(AbilityTag.GetSingleTagContainer());
+
+	UE_LOG(LogTemp, Warning, TEXT("%s: %s (adds %d/%d, totems %d/%d)"), CommandName,
+		bActivated ? TEXT("cast") : TEXT("refused (cooldown, already casting, or blocked)"),
+		Aldegon->GetLivingSummonCount(EGodsentAldegonSummonType::Add), Aldegon->GetMaxSummons(EGodsentAldegonSummonType::Add),
+		Aldegon->GetLivingSummonCount(EGodsentAldegonSummonType::Totem), Aldegon->GetMaxSummons(EGodsentAldegonSummonType::Totem));
+}
+
+void UGodsentCheatManager::GodsentAldegonSummon()
+{
+	TryAldegonAbility(TEXT("GodsentAldegonSummon"), GodsentGameplayTags::Enemy_Ability_Aldegon_Summon);
+}
+
+void UGodsentCheatManager::GodsentAldegonSiphon()
+{
+	TryAldegonAbility(TEXT("GodsentAldegonSiphon"), GodsentGameplayTags::Enemy_Ability_Aldegon_LifeSiphon);
+}
+
+void UGodsentCheatManager::GodsentAldegonKillSummons()
+{
+	if (UGodsentAldegonComponent* Aldegon = FindAldegon(TEXT("GodsentAldegonKillSummons")))
+	{
+		Aldegon->KillAllSummons();
+		UE_LOG(LogTemp, Warning, TEXT("GodsentAldegonKillSummons: done"));
+	}
 }

@@ -34,6 +34,14 @@ namespace
 
 	/// Ground Trigger falls back to this walk speed if the target has no movement or MoveSpeed to read (the hero's default)
 	constexpr float AldegonFallbackTargetWalkSpeed = 400.f;
+
+	/// Default summon cap steps (Andre tweaks these on BP_Aldegon)
+	constexpr float AldegonCapStepHalfHealth = 50.f;
+	constexpr float AldegonCapStepQuarterHealth = 25.f;
+	constexpr int32 AldegonAddsAtHalfHealth = 6;
+	constexpr int32 AldegonAddsAtQuarterHealth = 8;
+	constexpr int32 AldegonTotemsAtHalfHealth = 3;
+	constexpr int32 AldegonTotemsAtQuarterHealth = 4;
 }
 
 UGodsentAldegonComponent::UGodsentAldegonComponent()
@@ -49,6 +57,12 @@ UGodsentAldegonComponent::UGodsentAldegonComponent()
 	LifeSiphonAbilityTag = GodsentGameplayTags::Enemy_Ability_Aldegon_LifeSiphon;
 	ClawResetAbilityTags.AddTag(GodsentGameplayTags::Enemy_Ability_Aldegon_SoulBeam);
 	ClawResetAbilityTags.AddTag(GodsentGameplayTags::Enemy_Ability_Aldegon_DeathWave);
+
+	// The lower his health, the more he can have out at once
+	AddCapSteps.Add(FGodsentAldegonCapStep(AldegonCapStepHalfHealth, AldegonAddsAtHalfHealth));
+	AddCapSteps.Add(FGodsentAldegonCapStep(AldegonCapStepQuarterHealth, AldegonAddsAtQuarterHealth));
+	TotemCapSteps.Add(FGodsentAldegonCapStep(AldegonCapStepHalfHealth, AldegonTotemsAtHalfHealth));
+	TotemCapSteps.Add(FGodsentAldegonCapStep(AldegonCapStepQuarterHealth, AldegonTotemsAtQuarterHealth));
 }
 
 void UGodsentAldegonComponent::BeginPlay()
@@ -613,7 +627,7 @@ void UGodsentAldegonComponent::ResetFightCounters()
 	bLiftOffPending = false;
 	AirborneBandsCrossed = 0;
 	ConsecutiveClaws = 0;
-	LastHealthPercent = GetHealthPercent();
+	LowestHealthPercent = GetHealthPercent();
 	SetFrenzy(false);
 }
 
@@ -650,15 +664,18 @@ void UGodsentAldegonComponent::SetFrenzy(bool bNewFrenzied)
 void UGodsentAldegonComponent::OnHealthChanged(const FOnAttributeChangeData& Data)
 {
 	const float NewPercent = GetHealthPercent();
-	const float OldPercent = LastHealthPercent;
-	LastHealthPercent = NewPercent;
 
 	// Only counts once he's up and fighting (not the start-up stats filling his health in)
 	const bool bAwake = CurrentState == EGodsentAldegonState::Grounded || CurrentState == EGodsentAldegonState::Landing
 		|| CurrentState == EGodsentAldegonState::TakingOff || CurrentState == EGodsentAldegonState::Airborne;
 
+	// Healing (totems), or not lower than he's already been: no new bands
+	const float OldPercent = LowestHealthPercent;
+
 	if (!bAwake || NewPercent >= OldPercent)
 		return;
+
+	LowestHealthPercent = NewPercent;
 
 	int32 BandsCrossed = 0;
 
@@ -849,11 +866,21 @@ int32 UGodsentAldegonComponent::GetLivingSummonCount(EGodsentAldegonSummonType S
 
 int32 UGodsentAldegonComponent::GetMaxSummons(EGodsentAldegonSummonType SummonType) const
 {
-	const float MaxValue = SummonType == EGodsentAldegonSummonType::Totem
-		? ReadStat(MaxTotems, TEXT("Max Totems"))
-		: ReadStat(MaxAdds, TEXT("Max Adds"));
+	const bool bTotems = SummonType == EGodsentAldegonSummonType::Totem;
+	const float MaxValue = bTotems ? ReadStat(MaxTotems, TEXT("Max Totems")) : ReadStat(MaxAdds, TEXT("Max Adds"));
 
-	return FMath::RoundToInt(MaxValue);
+	int32 MaxAlive = FMath::RoundToInt(MaxValue);
+
+	// Lower health: bigger cap (the highest step he's reached wins)
+	const float HealthPercent = GetHealthPercent();
+
+	for (const FGodsentAldegonCapStep& Step : bTotems ? TotemCapSteps : AddCapSteps)
+	{
+		if (HealthPercent <= Step.AtHealthPercent)
+			MaxAlive = FMath::Max(MaxAlive, Step.MaxAlive);
+	}
+
+	return MaxAlive;
 }
 
 void UGodsentAldegonComponent::GetLivingSummons(TArray<AActor*>& OutSummons) const

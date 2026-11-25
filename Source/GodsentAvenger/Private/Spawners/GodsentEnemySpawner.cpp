@@ -5,6 +5,8 @@
 #include "AbilitySystemComponent.h"
 #include "DrawDebugHelpers.h"
 #include "EngineUtils.h"
+#include "Engine/AssetManager.h"
+#include "Engine/StreamableManager.h"
 #include "Engine/Engine.h"
 #include "NavigationSystem.h"
 #include "TimerManager.h"
@@ -83,6 +85,9 @@ void AGodsentEnemySpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	GetWorldTimerManager().ClearTimer(SpawnTimerHandle);
 	GetWorldTimerManager().ClearTimer(ActivationCheckTimerHandle);
 
+	CancelPoolLoad();
+	EnemyPoolLoadHandle.Reset();
+
 	for (FTrackedSpawnedEnemy& Tracked : TrackedEnemies)
 		UnbindTrackedEnemy(Tracked);
 
@@ -98,6 +103,7 @@ void AGodsentEnemySpawner::SpawnEnemies()
 		return;
 
 	bHasSpawned = true;
+	bSpawningStarted = false;
 	bHasBroadcastCleared = false;
 	SetActivationArmed(false);
 
@@ -106,6 +112,34 @@ void AGodsentEnemySpawner::SpawnEnemies()
 
 	if (EnemyPool.IsEmpty())
 		UE_LOG(LogTemp, Warning, TEXT("%s: Enemy Pool is empty, nothing to spawn"), *GetName());
+
+	// Already in memory (an earlier run, or another spawner loaded them): go now
+	if (FGodsentEnemySpawnEntry::IsPoolLoaded(EnemyPool))
+	{
+		StartSpawning();
+		return;
+	}
+
+	// Load the enemy Blueprints in the background, then spawn
+	EnemyPoolLoadHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(
+		FGodsentEnemySpawnEntry::GetClassPaths(EnemyPool),
+		FStreamableDelegate::CreateWeakLambda(this, [this]()
+		{
+			StartSpawning();
+		}));
+
+	// Nothing to load (all entries empty): carry on so the spawner still clears
+	if (!EnemyPoolLoadHandle.IsValid())
+		StartSpawning();
+}
+
+void AGodsentEnemySpawner::StartSpawning()
+{
+	// Reset while loading (the new run starts its own load), or already going
+	if (!bHasSpawned || bSpawningStarted)
+		return;
+
+	bSpawningStarted = true;
 
 	if (SpawnInterval <= 0.f)
 	{
@@ -258,31 +292,18 @@ bool AGodsentEnemySpawner::FindSpawnLocation(FVector& OutLocation)
 /// Weighted random pick from the Enemy Pool
 TSubclassOf<AGodsentEnemyCharacter> AGodsentEnemySpawner::PickEnemyClass() const
 {
-	float TotalWeight = 0.f;
+	const FGodsentEnemySpawnEntry* PickedEntry = FGodsentEnemySpawnEntry::PickWeighted(EnemyPool);
+	return PickedEntry ? PickedEntry->ResolveClass() : nullptr;
+}
 
-	for (const FGodsentEnemySpawnEntry& Entry : EnemyPool)
+void AGodsentEnemySpawner::CancelPoolLoad()
+{
+	// A finished load stays (it keeps the classes in memory); only an unfinished one is stopped
+	if (EnemyPoolLoadHandle.IsValid() && EnemyPoolLoadHandle->IsLoadingInProgress())
 	{
-		if (Entry.EnemyClass && Entry.Weight > 0.f)
-			TotalWeight += Entry.Weight;
+		EnemyPoolLoadHandle->CancelHandle();
+		EnemyPoolLoadHandle.Reset();
 	}
-
-	if (TotalWeight <= 0.f)
-		return nullptr;
-
-	float Roll = FMath::FRandRange(0.f, TotalWeight);
-
-	for (const FGodsentEnemySpawnEntry& Entry : EnemyPool)
-	{
-		if (!Entry.EnemyClass || Entry.Weight <= 0.f)
-			continue;
-
-		if (Roll <= Entry.Weight)
-			return Entry.EnemyClass;
-
-		Roll -= Entry.Weight;
-	}
-
-	return nullptr;
 }
 
 void AGodsentEnemySpawner::OnTrackedEnemyDeadTagChanged(const FGameplayTag Tag, int32 NewCount, TWeakObjectPtr<AGodsentEnemyCharacter> WeakEnemy)
@@ -382,6 +403,7 @@ void AGodsentEnemySpawner::ResetSpawner(bool bDestroySpawnedEnemies)
 	bIsResetting = true;
 
 	GetWorldTimerManager().ClearTimer(SpawnTimerHandle);
+	CancelPoolLoad();
 
 	for (FTrackedSpawnedEnemy& Tracked : TrackedEnemies)
 	{
@@ -396,6 +418,7 @@ void AGodsentEnemySpawner::ResetSpawner(bool bDestroySpawnedEnemies)
 	UsedSpawnLocations.Reset();
 	PendingSpawnCount = 0;
 	bHasSpawned = false;
+	bSpawningStarted = false;
 	bHasBroadcastCleared = false;
 
 	bIsResetting = false;

@@ -8,6 +8,7 @@
 #include "ScalableFloat.h"
 #include "ActiveGameplayEffectHandle.h"
 #include "GodsentTypes/GodsentEnumTypes.h"
+#include "GodsentTypes/GodsentStructTypes.h"
 #include "GodsentAldegonComponent.generated.h"
 
 class ACharacter;
@@ -35,6 +36,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAldegonFrenzyStarted);
  * The fight (Stage 18): the Boss Arena calls Start Fight / End Fight. While it's on he tracks what his behaviour tree
  * needs to decide what to do: health bands crossed, claws in a row, his living summons, frenzy.
  * The rules themselves live in the BT service Aldegon State Check.
+ *
+ * Summons (Stage 20): the Summon ability registers what it spawns here. Max Adds / Max Totems are his caps at full health,
+ * and the Add / Totem Cap Steps raise them as his health drops. Health bands only count the first time he drops past them,
+ * so a totem healing him back up can't make him lift off twice for the same band.
  *
  * Every tuning number is a Scalable Float, so it can point at a row in CT_AldegonStats.
  * New stats start at Value 1 (so picking a row just works) and log a warning if they aren't linked to a table.
@@ -169,14 +174,14 @@ public:
 
 	// ---- Summons ----
 
-	/// Call when he summons something (Stage 20 does this for you). It counts towards his cap until it dies.
+	/// Call when he summons something (the Summon ability does this for you). It counts towards his cap until it dies.
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Aldegon|Summons")
 	void RegisterSummon(AActor* Summon, EGodsentAldegonSummonType SummonType);
 
 	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Summons")
 	int32 GetLivingSummonCount(EGodsentAldegonSummonType SummonType) const;
 
-	/// Max Adds or Max Totems
+	/// Max Adds or Max Totems, raised by the Add / Totem Cap Steps his health has reached
 	UFUNCTION(BlueprintPure, Category = "Godsent|Aldegon|Summons")
 	int32 GetMaxSummons(EGodsentAldegonSummonType SummonType) const;
 
@@ -273,11 +278,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
 	FScalableFloat FrenzyAtHealthPercent = 1.f;
 
-	/// Most zombies and ghosts alive at once
+	/// Most zombies and ghosts alive at once (at full health; Add Cap Steps raise it)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
 	FScalableFloat MaxAdds = 1.f;
 
-	/// Most Life Siphon totems alive at once
+	/// Most Life Siphon totems alive at once (at full health; Totem Cap Steps raise it)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Stats|Fight")
 	FScalableFloat MaxTotems = 1.f;
 
@@ -298,6 +303,14 @@ protected:
 	/// Health % at which his Death Wave combo gets one wave longer (at or below each). Capped by Max Death Waves.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight")
 	TArray<float> DeathWaveThresholds = { 75.f, 50.f };
+
+	/// More adds allowed as his health drops: at or below each step's health %, up to its Max Alive (the highest reached wins)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight")
+	TArray<FGodsentAldegonCapStep> AddCapSteps;
+
+	/// The same for totems
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight")
+	TArray<FGodsentAldegonCapStep> TotemCapSteps;
 
 	/// Applied while frenzied (GE_Aldegon_Frenzy: raises Attack Speed, so claws, Death Wave and summons come faster)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Aldegon|Fight")
@@ -466,8 +479,8 @@ private:
 	int32 ConsecutiveClaws = 0;
 	bool bFrenzied = false;
 
-	/// Health % at the last change (to see which bands a hit crossed)
-	float LastHealthPercent = 100.f;
+	/// Lowest health % this fight (a band only counts the first time he drops past it, even if a totem heals him back above)
+	float LowestHealthPercent = 100.f;
 
 	/// World time his state last changed
 	float StateEnteredTime = 0.f;

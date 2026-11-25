@@ -5,25 +5,13 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "GameFramework/Actor.h"
+#include "GodsentTypes/GodsentStructTypes.h"
 #include "GodsentEnemySpawner.generated.h"
 
 class AGodsentEnemyCharacter;
 class AGodsentEnemySpawner;
 class USphereComponent;
-
-/// One possible enemy in a spawner's pool
-USTRUCT(BlueprintType)
-struct FGodsentEnemySpawnEntry
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
-	TSubclassOf<AGodsentEnemyCharacter> EnemyClass;
-
-	/// How likely this enemy is compared with the others (Zombie 3 + Ghost 1 = 75% zombies). 0 = never.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn", meta = (ClampMin = "0.0"))
-	float Weight = 1.f;
-};
+struct FStreamableHandle;
 
 /// When the spawner spawns its enemies
 UENUM(BlueprintType)
@@ -41,6 +29,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSpawnerClearedDelegate, AGodsentE
 /**
  * Spawns a random set of enemies within Spawn Radius once the player comes near, and tracks them.
  * - picks Min-Max Spawn Count enemies from the weighted Enemy Pool (different every run);
+ * - the pool holds soft references: the enemy Blueprints load (in the background) when the spawner activates, not with the level;
  * - places each on a random reachable navmesh point, at least Min Spacing apart, facing a random way;
  * - spawned enemies patrol around where they appeared (the AI controller records it as home);
  * - counts an enemy as defeated the moment it gets Shared.Status.Dead (or if it's destroyed some other way, e.g. falling out of the world)
@@ -130,7 +119,7 @@ protected:
 
 	// ---- What to spawn ----
 
-	/// Enemies to pick from (weighted)
+	/// Enemies to pick from (weighted). Loaded when the spawner activates.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner|Enemies")
 	TArray<FGodsentEnemySpawnEntry> EnemyPool;
 
@@ -196,10 +185,16 @@ private:
 
 	void OnTrackedEnemyDeadTagChanged(const FGameplayTag Tag, int32 NewCount, TWeakObjectPtr<AGodsentEnemyCharacter> WeakEnemy);
 
+	/// Called once the pool's classes are loaded: spawns the first enemy and starts the interval timer
+	void StartSpawning();
+
 	void SpawnNextEnemy();
 	AGodsentEnemyCharacter* SpawnOneEnemy();
 	bool FindSpawnLocation(FVector& OutLocation);
 	TSubclassOf<AGodsentEnemyCharacter> PickEnemyClass() const;
+
+	/// Stops a pool load that hasn't finished (reset or level end)
+	void CancelPoolLoad();
 
 	void MarkEnemyDefeated(AGodsentEnemyCharacter* Enemy);
 	void UnbindTrackedEnemy(FTrackedSpawnedEnemy& Tracked);
@@ -210,6 +205,9 @@ private:
 	static bool IsPlayerPawn(const AActor* Actor);
 
 	TArray<FTrackedSpawnedEnemy> TrackedEnemies;
+
+	/// Keeps the pool's classes loaded once they are (so a reset spawns straight away)
+	TSharedPtr<FStreamableHandle> EnemyPoolLoadHandle;
 	TArray<FVector> UsedSpawnLocations;
 	FTimerHandle SpawnTimerHandle;
 
@@ -218,6 +216,9 @@ private:
 
 	int32 PendingSpawnCount = 0;
 	bool bHasSpawned = false;
+
+	/// Start Spawning has run for this activation (so a late load callback can't start it twice)
+	bool bSpawningStarted = false;
 	bool bHasBroadcastCleared = false;
 	bool bIsResetting = false;
 };
