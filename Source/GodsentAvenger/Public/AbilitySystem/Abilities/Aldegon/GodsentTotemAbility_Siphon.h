@@ -70,7 +70,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Siphon|Visuals", meta = (ClampMin = "0.0"))
 	float ShakeStrength = 1.f;
 
-	/// GameplayCue each tick: Location = the totem, Effect Causer = the player it hit (if any), Instigator = Aldegon. Empty = none.
+	/// GameplayCue each tick: Location = the middle of the totem (for tethers), Origin = the floor under it (for a ground pulse),
+	/// Raw Magnitude = Siphon Radius (so a pulse can expand exactly to the range),
+	/// Effect Causer = the player it hit (if any), Instigator = Aldegon. Empty = none.
 	UPROPERTY(EditDefaultsOnly, Category = "Siphon|Visuals", meta = (Categories = "GameplayCue"))
 	FGameplayTag PulseCueTag;
 

@@ -20,6 +20,9 @@ namespace
 
 	/// Extra reach for the "who's near" check, so big capsules at the band's edge aren't missed
 	constexpr float DeathWaveQueryPadding = 200.f;
+
+	/// Progress and Fade run 0 to 1
+	constexpr float DeathWaveFullProgress = 1.f;
 }
 
 AGodsentDeathWaveRing::AGodsentDeathWaveRing()
@@ -34,8 +37,9 @@ AGodsentDeathWaveRing::AGodsentDeathWaveRing()
 }
 
 void AGodsentDeathWaveRing::InitRing(APawn* InOwnerPawn, UAbilitySystemComponent* InSourceASC, const FGameplayEffectSpecHandle& InDamageSpec,
-	float InSpeed, float InMaxRadius, float InThickness, float InHopClearance)
+	float InSpeed, float InMaxRadius, float InThickness, float InHopClearance, const FGameplayTag& InHitCueTag)
 {
+	HitCueTag = InHitCueTag;
 	OwnerPawn = InOwnerPawn;
 	SourceASC = InSourceASC;
 	DamageSpec = InDamageSpec;
@@ -53,16 +57,31 @@ void AGodsentDeathWaveRing::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// Full size: no more hits, just fade out over Linger Time
 	if (bFinishedGrowing)
+	{
+		LingerElapsed += DeltaTime;
+
+		if (RingEffect)
+		{
+			const float Fade = LingerTime > 0.f ? FMath::Clamp(LingerElapsed / LingerTime, 0.f, DeathWaveFullProgress) : DeathWaveFullProgress;
+			RingEffect->SetVariableFloat(FadeParameter, Fade);
+		}
+
 		return;
+	}
 
 	CurrentRadius = FMath::Min(CurrentRadius + Speed * DeltaTime, MaxRadius);
 
 	// The effect and the hit check always use the same radius
 	if (RingEffect)
 	{
+		const float Progress = MaxRadius > 0.f ? FMath::Clamp(CurrentRadius / MaxRadius, 0.f, DeathWaveFullProgress) : DeathWaveFullProgress;
+
 		RingEffect->SetVariableFloat(RadiusParameter, CurrentRadius);
 		RingEffect->SetVariableFloat(ThicknessParameter, Thickness);
+		RingEffect->SetVariableFloat(ProgressParameter, Progress);
+		RingEffect->SetVariableFloat(FadeParameter, 0.f);
 	}
 
 	BP_OnRingGrown(CurrentRadius, Thickness);
@@ -133,5 +152,31 @@ void AGodsentDeathWaveRing::CheckHits()
 
 		HitActors.Add(Hostile);
 		Source->ApplyGameplayEffectSpecToTarget(*DamageSpec.Data.Get(), TargetASC);
+		PlayHitCue(Hostile, FeetZ);
 	}
+}
+
+void AGodsentDeathWaveRing::PlayHitCue(APawn* HitPawn, float FeetZ) const
+{
+	if (!HitCueTag.IsValid())
+		return;
+
+	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitPawn);
+
+	if (!TargetASC)
+		return;
+
+	// The point of the band under them, facing outwards (the way the ring is travelling)
+	const FVector Centre = GetActorLocation();
+	FVector Outwards = (HitPawn->GetActorLocation() - Centre).GetSafeNormal2D();
+
+	if (Outwards.IsNearlyZero())
+		Outwards = HitPawn->GetActorForwardVector();
+
+	FGameplayCueParameters CueParameters;
+	CueParameters.Location = FVector(Centre.X, Centre.Y, FeetZ) + Outwards * CurrentRadius;
+	CueParameters.Normal = Outwards;
+	CueParameters.Instigator = OwnerPawn.Get();
+	CueParameters.EffectCauser = const_cast<AGodsentDeathWaveRing*>(this);
+	TargetASC->ExecuteGameplayCue(HitCueTag, CueParameters);
 }

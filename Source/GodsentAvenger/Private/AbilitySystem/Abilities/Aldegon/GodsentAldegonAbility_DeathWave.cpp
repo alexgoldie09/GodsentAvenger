@@ -150,7 +150,7 @@ void UGodsentAldegonAbility_DeathWave::SpawnRing()
 		return;
 
 	Ring->InitRing(Character, ASC, DamageSpec, RingSpeed.GetValueAtLevel(Level), MaxRadius.GetValueAtLevel(Level),
-		RingThickness.GetValueAtLevel(Level), HopClearance.GetValueAtLevel(Level));
+		RingThickness.GetValueAtLevel(Level), HopClearance.GetValueAtLevel(Level), HitCueTag);
 
 	Ring->FinishSpawning(SpawnTransform);
 }

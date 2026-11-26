@@ -14,6 +14,7 @@
 #include "GodsentGameplayTags.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "TimerManager.h"
 
 namespace
 {
@@ -21,6 +22,10 @@ namespace
 
 	/// How long the debug shapes stay up (one frame)
 	constexpr float SoulBeamDebugLifetime = 0.f;
+	constexpr int32 SoulBeamDebugSegments = 12;
+
+	/// Fully shot out
+	constexpr float SoulBeamFullExtend = 1.f;
 }
 
 UGodsentAldegonAbility_SoulBeam::UGodsentAldegonAbility_SoulBeam()
@@ -104,6 +109,7 @@ void UGodsentAldegonAbility_SoulBeam::StartBeam()
 		return;
 
 	bFiring = true;
+	FiringTime = 0.f;
 
 	// The first tick lands as soon as it touches someone
 	TimeSinceDamageTick = TickInterval.GetValueAtLevel(GetAbilityLevel());
@@ -112,8 +118,9 @@ void UGodsentAldegonAbility_SoulBeam::StartBeam()
 
 	if (BeamEffect && Character)
 	{
+		// Starts at his hand facing his way; every tick after moves it with the beam
 		BeamComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(BeamEffect, Character->GetMesh(), NAME_None,
-			FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::KeepRelativeOffset, false);
+			GetBeamStart(), Character->GetActorRotation(), EAttachLocation::KeepWorldPosition, false);
 	}
 }
 
@@ -121,10 +128,23 @@ void UGodsentAldegonAbility_SoulBeam::StopBeam()
 {
 	bFiring = false;
 
-	if (BeamComponent)
+	if (!BeamComponent)
+		return;
+
+	// Stop spawning and let what's there finish (no pop), then make sure it's gone
+	UNiagaraComponent* FinishingBeam = BeamComponent;
+	BeamComponent = nullptr;
+
+	FinishingBeam->SetAutoDestroy(true);
+	FinishingBeam->Deactivate();
+
+	if (UWorld* World = GetWorld())
 	{
-		BeamComponent->DestroyComponent();
-		BeamComponent = nullptr;
+		FTimerHandle WindDownHandle;
+		World->GetTimerManager().SetTimer(WindDownHandle, FTimerDelegate::CreateWeakLambda(FinishingBeam, [FinishingBeam]()
+		{
+			FinishingBeam->DestroyComponent();
+		}), FMath::Max(WindDownTime, KINDA_SMALL_NUMBER), false);
 	}
 }
 
@@ -181,13 +201,19 @@ void UGodsentAldegonAbility_SoulBeam::OnTick(float DeltaTime)
 		BeamDirection = (Forward * FlatDistance + FVector(0.f, 0.f, Target->GetActorLocation().Z - BeamStart.Z)).GetSafeNormal();
 	}
 
-	FVector BeamEnd = BeamStart + BeamDirection * Range.GetValueAtLevel(Level);
+	// Shooting out: it only reaches (and hurts) as far as it's got
+	FiringTime += DeltaTime;
+	const float FullExtendTime = ExtendTime.GetValueAtLevel(Level);
+	const float ExtendAlpha = FullExtendTime > 0.f ? FMath::Clamp(FiringTime / FullExtendTime, 0.f, SoulBeamFullExtend) : SoulBeamFullExtend;
+
+	FVector BeamEnd = BeamStart + BeamDirection * Range.GetValueAtLevel(Level) * ExtendAlpha;
 
 	// Walls and pillars stop it
 	FCollisionQueryParams Params(SoulBeamTraceTag, false, Character);
 	FHitResult WallHit;
+	const bool bBlocked = GetWorld()->LineTraceSingleByObjectType(WallHit, BeamStart, BeamEnd, FCollisionObjectQueryParams(WallObjectType.GetValue()), Params);
 
-	if (GetWorld()->LineTraceSingleByObjectType(WallHit, BeamStart, BeamEnd, FCollisionObjectQueryParams(WallObjectType.GetValue()), Params))
+	if (bBlocked)
 		BeamEnd = WallHit.ImpactPoint;
 
 	// Everyone hostile inside the beam
@@ -198,6 +224,7 @@ void UGodsentAldegonAbility_SoulBeam::OnTick(float DeltaTime)
 		FCollisionShape::MakeSphere(BeamRadius), Params);
 
 	TArray<APawn*> PawnsInBeam;
+	TArray<FVector> HitLocations;
 
 	for (const FHitResult& Hit : PawnHits)
 	{
@@ -210,7 +237,9 @@ void UGodsentAldegonAbility_SoulBeam::OnTick(float DeltaTime)
 		if (UGodsentFunctionLibrary::NativeDoesActorHaveTag(HitPawn, GodsentGameplayTags::Shared_Status_Invincible))
 			continue;
 
+		// Where the beam's line passes them (a sweep's impact point isn't reliable when it starts inside them)
 		PawnsInBeam.Add(HitPawn);
+		HitLocations.Add(FMath::ClosestPointOnSegment(HitPawn->GetActorLocation(), BeamStart, BeamEnd));
 	}
 
 	// Damage on the tick
@@ -224,23 +253,60 @@ void UGodsentAldegonAbility_SoulBeam::OnTick(float DeltaTime)
 
 		if (DamageSpec.IsValid())
 		{
-			for (APawn* HitPawn : PawnsInBeam)
+			for (int32 Index = 0; Index < PawnsInBeam.Num(); ++Index)
 			{
-				if (UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitPawn))
-					NativeApplyEffectSpecHandleToTarget(HitPawn, DamageSpec);
+				APawn* HitPawn = PawnsInBeam[Index];
+
+				if (!UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitPawn))
+					continue;
+
+				NativeApplyEffectSpecHandleToTarget(HitPawn, DamageSpec);
+				PlayHitCue(HitPawn, HitLocations[Index], BeamDirection);
 			}
 		}
 	}
 
-	if (BeamComponent)
-	{
-		BeamComponent->SetVariablePosition(BeamStartParameter, BeamStart);
-		BeamComponent->SetVariablePosition(BeamEndParameter, BeamEnd);
-	}
+	UpdateBeamEffect(BeamStart, BeamEnd, BeamDirection, BeamRadius, ExtendAlpha, bBlocked);
 
 	if (bDrawDebug)
 	{
 		DrawDebugLine(GetWorld(), BeamStart, BeamEnd, FColor::Purple, false, SoulBeamDebugLifetime);
-		DrawDebugSphere(GetWorld(), BeamEnd, BeamRadius, 12, FColor::Purple, false, SoulBeamDebugLifetime);
+		DrawDebugSphere(GetWorld(), BeamEnd, BeamRadius, SoulBeamDebugSegments, bBlocked ? FColor::Orange : FColor::Purple, false, SoulBeamDebugLifetime);
 	}
+}
+
+void UGodsentAldegonAbility_SoulBeam::UpdateBeamEffect(const FVector& BeamStart, const FVector& BeamEnd, const FVector& BeamDirection,
+	float BeamRadius, float ExtendAlpha, bool bBlocked)
+{
+	if (!BeamComponent)
+		return;
+
+	// At his hand, X pointing down the beam (a mesh along local X just needs scaling by Beam Length)
+	BeamComponent->SetWorldLocationAndRotation(BeamStart, BeamDirection.Rotation());
+
+	BeamComponent->SetVariablePosition(BeamStartParameter, BeamStart);
+	BeamComponent->SetVariablePosition(BeamEndParameter, BeamEnd);
+	BeamComponent->SetVariableFloat(BeamLengthParameter, FVector::Dist(BeamStart, BeamEnd));
+	BeamComponent->SetVariableFloat(BeamRadiusParameter, BeamRadius);
+	BeamComponent->SetVariableFloat(BeamExtendParameter, ExtendAlpha);
+	BeamComponent->SetVariableBool(BeamBlockedParameter, bBlocked);
+}
+
+void UGodsentAldegonAbility_SoulBeam::PlayHitCue(APawn* HitPawn, const FVector& HitLocation, const FVector& BeamDirection) const
+{
+	if (!HitCueTag.IsValid())
+		return;
+
+	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitPawn);
+
+	if (!TargetASC)
+		return;
+
+	// On the player, so the cue can attach to them
+	FGameplayCueParameters CueParameters;
+	CueParameters.Location = HitLocation;
+	CueParameters.Normal = -BeamDirection;
+	CueParameters.Instigator = GetAvatarActorFromActorInfo();
+	CueParameters.EffectCauser = GetAvatarActorFromActorInfo();
+	TargetASC->ExecuteGameplayCue(HitCueTag, CueParameters);
 }

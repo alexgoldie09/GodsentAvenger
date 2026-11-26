@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "GameFramework/Actor.h"
 #include "GameplayEffectTypes.h"
 #include "GodsentDeathWaveRing.generated.h"
@@ -16,8 +17,11 @@ class UNiagaraComponent;
  * Standing inside after it's gone past, or outside before it arrives, is safe.
  * Avoid it by jumping (Hop/Leap, feet above Hop Clearance as it passes) or dodging through it (i-frames).
  *
- * The visual uses the same radius as the hit check every frame: the Niagara effect gets Radius and Thickness
- * float parameters, and On Ring Grown fires for Blueprint visuals (e.g. scaling a ring mesh).
+ * The visual uses the same radius as the hit check every frame. The Niagara effect gets float parameters:
+ * - Radius and Thickness (cm): the band that hurts;
+ * - Progress: 0 to 1 as it grows to full size;
+ * - Fade: 0 while growing, then 0 to 1 over Linger Time (fade it out with this).
+ * On Ring Grown also fires for Blueprint visuals (e.g. scaling a ring mesh).
  */
 UCLASS(Blueprintable)
 class GODSENTAVENGER_API AGodsentDeathWaveRing : public AActor
@@ -31,7 +35,7 @@ public:
 
 	/// Set by the Death Wave ability straight after spawning
 	void InitRing(APawn* InOwnerPawn, UAbilitySystemComponent* InSourceASC, const FGameplayEffectSpecHandle& InDamageSpec,
-		float InSpeed, float InMaxRadius, float InThickness, float InHopClearance);
+		float InSpeed, float InMaxRadius, float InThickness, float InHopClearance, const FGameplayTag& InHitCueTag);
 
 	UFUNCTION(BlueprintPure, Category = "Godsent|Death Wave")
 	float GetRadius() const { return CurrentRadius; }
@@ -55,6 +59,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Death Wave")
 	FName ThicknessParameter = TEXT("Thickness");
 
+	/// 0 to 1 as it grows to full size
+	UPROPERTY(EditDefaultsOnly, Category = "Death Wave")
+	FName ProgressParameter = TEXT("Progress");
+
+	/// 0 while growing, then 0 to 1 over Linger Time
+	UPROPERTY(EditDefaultsOnly, Category = "Death Wave")
+	FName FadeParameter = TEXT("Fade");
+
 	/// Seconds it stays after reaching full size (lets the effect fade) before it's removed
 	UPROPERTY(EditDefaultsOnly, Category = "Death Wave", meta = (ClampMin = "0.0", Units = "s"))
 	float LingerTime = 0.5f;
@@ -67,6 +79,9 @@ private:
 	/// Hits anyone the band is passing over
 	void CheckHits();
 
+	/// Hit cue on the target, at the point of the band nearest them
+	void PlayHitCue(APawn* HitPawn, float FeetZ) const;
+
 	TWeakObjectPtr<APawn> OwnerPawn;
 	TWeakObjectPtr<UAbilitySystemComponent> SourceASC;
 	FGameplayEffectSpecHandle DamageSpec;
@@ -78,6 +93,12 @@ private:
 
 	float CurrentRadius = 0.f;
 	bool bFinishedGrowing = false;
+
+	/// Seconds since it reached full size (for Fade)
+	float LingerElapsed = 0.f;
+
+	/// From the Death Wave ability (empty = no hit cue)
+	FGameplayTag HitCueTag;
 
 	/// Already hit by this ring (once each)
 	TSet<TWeakObjectPtr<AActor>> HitActors;

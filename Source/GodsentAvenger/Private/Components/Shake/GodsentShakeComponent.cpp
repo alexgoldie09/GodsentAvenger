@@ -3,8 +3,10 @@
 #include "Components/Shake/GodsentShakeComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Materials/MaterialInterface.h"
 #include "Curves/CurveFloat.h"
 #include "GameFramework/Actor.h"
+#include "Components/MeshComponent.h"
 
 namespace
 {
@@ -80,6 +82,18 @@ void UGodsentShakeComponent::Shake(float Strength)
 	if (!bShaking)
 		RestTransform = Target->GetRelativeTransform();
 
+	// The glow's normal value, from the material the first time
+	if (!bHasRestGlow && GlowParameter != NAME_None)
+	{
+		const UMeshComponent* MeshTarget = Cast<UMeshComponent>(Target);
+		const UMaterialInterface* Material = MeshTarget ? MeshTarget->GetMaterial(0) : nullptr;
+		
+		if (!Material || !Material->GetScalarParameterValue(FHashedMaterialParameterInfo(GlowParameter), RestGlow))
+			UE_LOG(LogTemp, Warning, TEXT("%s: Godsent Shake's material has no '%s' parameter to glow"), *GetNameSafe(GetOwner()), *GlowParameter.ToString());
+
+		bHasRestGlow = true;
+	}
+
 	ElapsedTime = 0.f;
 	ShakeStrength = Strength;
 	bShaking = true;
@@ -100,6 +114,18 @@ void UGodsentShakeComponent::RestoreRestTransform()
 {
 	if (USceneComponent* Target = ShakeTarget.Get())
 		Target->SetRelativeTransform(RestTransform);
+
+	SetGlow(RestGlow);
+}
+
+void UGodsentShakeComponent::SetGlow(float Value) const
+{
+	if (GlowParameter == NAME_None)
+		return;
+
+	// Makes dynamic material instances as needed (the death dissolve builds on top of them fine)
+	if (UMeshComponent* MeshTarget = Cast<UMeshComponent>(ShakeTarget.Get()))
+		MeshTarget->SetScalarParameterValueOnMaterials(GlowParameter, Value);
 }
 
 void UGodsentShakeComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -138,8 +164,10 @@ void UGodsentShakeComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		FMath::PerlinNoise1D(NoiseTime + ShakeNoiseOffsetYaw) * RotationAmplitude.Yaw,
 		FMath::PerlinNoise1D(NoiseTime + ShakeNoiseOffsetRoll) * RotationAmplitude.Roll);
 
-	// Swells up and back down once over the shake
-	const float Punch = 1.f + ScalePunch * ShakeStrength * FMath::Sin(Progress * PI);
+	// Swells up and back down once over the shake (the glow flares on the same curve)
+	const float Swell = ShakeStrength * FMath::Sin(Progress * PI);
+	const float Punch = 1.f + ScalePunch * Swell;
+	SetGlow(RestGlow + GlowPulseAmount * Swell);
 
 	FTransform Shaken = RestTransform;
 	Shaken.AddToTranslation(Jitter * Fade);

@@ -7,6 +7,8 @@
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "AbilitySystem/GodsentAttributeSet.h"
 #include "Components/Shake/GodsentShakeComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
 #include "GameplayEffect.h"
 #include "GodsentFunctionLibrary.h"
@@ -160,7 +162,15 @@ void UGodsentTotemAbility_Siphon::PlayPulse(AActor* HitTarget)
 	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
 	{
 		FGameplayCueParameters CueParameters;
-		CueParameters.Location = TotemActor->GetActorLocation();
+
+		// The floor under it, for ground effects (tethers use the totem itself: the cue's target)
+		FVector FloorLocation = TotemActor->GetActorLocation();
+
+		if (const ACharacter* TotemCharacter = Cast<ACharacter>(TotemActor))
+			FloorLocation.Z -= TotemCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
+		CueParameters.Location = FloorLocation;
+		CueParameters.RawMagnitude = SiphonRadius.GetValueAtLevel(GetAbilityLevel());
 		CueParameters.EffectCauser = HitTarget;
 		CueParameters.Instigator = GetSummoner();
 		ASC->ExecuteGameplayCue(PulseCueTag, CueParameters);

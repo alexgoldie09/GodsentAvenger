@@ -46,6 +46,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Death Wave")
 	TSubclassOf<AGodsentDeathWaveRing> RingClass;
 
+	/// GameplayCue on the player when a ring hits them (Location = the band under them, Normal = outwards). Empty = none.
+	UPROPERTY(EditDefaultsOnly, Category = "Death Wave", meta = (Categories = "GameplayCue"))
+	FGameplayTag HitCueTag;
+
 	// ---- Stats (CT_AldegonStats rows) ----
 
 	/// Damage per ring that hits

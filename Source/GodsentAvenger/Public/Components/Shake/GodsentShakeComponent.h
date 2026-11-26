@@ -11,6 +11,7 @@ class USceneComponent;
 
 /**
  * Gives a mesh a short shudder: jitters its position and rotation and gives it a quick scale punch, then settles back.
+ * It can also flare a material parameter (Glow Parameter, e.g. the totem's Glowiness) on the same curve as the scale punch.
  * The bone totem shakes on every Life Siphon tick (paired with its VFX later).
  * Shakes the component tagged Shake Target Tag, or the first Static Mesh if none is tagged.
  * Only ticks while shaking.
@@ -71,17 +72,32 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Shake")
 	TObjectPtr<UCurveFloat> FadeCurve;
 
+	/// Scalar material parameter to flare with each shake (e.g. Glowiness). None = no glow.
+	UPROPERTY(EditDefaultsOnly, Category = "Shake|Glow")
+	FName GlowParameter = NAME_None;
+
+	/// How much is added to it at the peak (halfway through the shake), on top of its normal value
+	UPROPERTY(EditDefaultsOnly, Category = "Shake|Glow", meta = (ClampMin = "0.0"))
+	float GlowPulseAmount = 5.f;
+
 private:
 	/// Finds what to shake (tagged component, else the first static mesh)
 	void FindShakeTarget();
 
-	/// Puts the target back where it started
+	/// Puts the target back where it started (and its glow back to normal)
 	void RestoreRestTransform();
+
+	/// Sets the glow parameter on the target's materials
+	void SetGlow(float Value) const;
 
 	TWeakObjectPtr<USceneComponent> ShakeTarget;
 
 	/// The target's relative transform before shaking
 	FTransform RestTransform = FTransform::Identity;
+
+	/// The glow parameter's normal value (read from the material the first time)
+	float RestGlow = 0.f;
+	bool bHasRestGlow = false;
 
 	float ElapsedTime = 0.f;
 	float ShakeStrength = 1.f;
