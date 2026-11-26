@@ -78,6 +78,10 @@ protected:
 	/// The Camera Actor with this tag frames the display knight. Any other Camera Actor is the menu camera.
 	UPROPERTY(EditDefaultsOnly, Category = "Customiser")
 	FName CustomiserCameraTag = TEXT("Customiser");
+	
+	/// The display knight the customiser dresses (BP_MenuHeroDisplay with this actor tag). The other knights are just scenery.
+	UPROPERTY(EditDefaultsOnly, Category = "Customiser")
+	FName CustomiserDisplayTag = TEXT("CustomiserDisplay");
 
 	/// How long the camera takes to pan between the menu and the customiser
 	UPROPERTY(EditDefaultsOnly, Category = "Customiser", meta = (ClampMin = "0.0", Units = "s"))
@@ -105,7 +109,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<AActor> CustomiserCamera;
 
-	/// The first actor in the map with a Heir Appearance component (BP_MenuHeroDisplay)
+	/// The display knight tagged Customiser Display Tag (BP_MenuHeroDisplay)
 	UPROPERTY()
 	TObjectPtr<AActor> DisplayActor;
 

@@ -45,13 +45,35 @@ void AGodsentMainMenuGameMode::BeginPlay()
 		}
 	}
 
+	// The tagged knight is the customiser's. Untagged ones are just scenery.
+	AActor* FirstDisplay = nullptr;
+	int32 DisplayCount = 0;
+
 	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
 	{
-		if (It->FindComponentByClass<UHeirAppearanceComponent>())
+		if (!It->FindComponentByClass<UHeirAppearanceComponent>())
+			continue;
+
+		++DisplayCount;
+
+		if (!FirstDisplay)
+			FirstDisplay = *It;
+
+		if (It->ActorHasTag(CustomiserDisplayTag))
 		{
 			DisplayActor = *It;
 			break;
 		}
+	}
+
+	// No tag: fall back to the first one (only safe with a single knight)
+	if (!DisplayActor && FirstDisplay)
+	{
+		DisplayActor = FirstDisplay;
+
+		if (DisplayCount > 1)
+			UE_LOG(LogTemp, Warning, TEXT("[MainMenu] %d display knights but none tagged %s, using %s"),
+				DisplayCount, *CustomiserDisplayTag.ToString(), *GetNameSafe(DisplayActor));
 	}
 
 	if (!MainMenuWidgetClass)
