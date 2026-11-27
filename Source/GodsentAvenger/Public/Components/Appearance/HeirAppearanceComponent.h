@@ -50,7 +50,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Godsent|Appearance")
 	UGodsentVoiceSetDataAsset* GetVoiceSet() const;
 
-	/// Plays this voice's line for a tag from the mesh. Nothing if the voice doesn't have that line yet.
+	/// True while a newly picked voice is still loading in the background
+	UFUNCTION(BlueprintPure, Category = "Godsent|Appearance")
+	bool IsVoiceLoading() const { return !LoadingVoicePath.IsNull(); }
+
+	/// Plays this voice's line for a tag from the mesh. Nothing if the voice doesn't have that line yet,
+	/// or while he's saying a dialogue line (the Dialogue subsystem: entry, boss start).
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Appearance", meta = (GameplayTagFilter = "Voice"))
 	UAudioComponent* PlayVoiceLine(FGameplayTag VoiceLine);
 

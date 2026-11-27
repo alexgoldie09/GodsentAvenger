@@ -10,7 +10,9 @@
 #include "UObject/SoftObjectPtr.h"
 #include "GodsentStructTypes.generated.h"
 
+class AActor;
 class AGodsentEnemyCharacter;
+class USoundBase;
 class UGameplayEffect;
 class UGodsentHeroGameplayAbility;
 class UTexture2D;
@@ -154,4 +156,34 @@ struct FGodsentAldegonCapStep
 	/// ... this many can be alive at once
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Cap", meta = (ClampMin = "0"))
 	int32 MaxAlive = 1;
+};
+
+/// One line of dialogue for the Dialogue subsystem: who says it, what they say, and how long to wait first
+USTRUCT(BlueprintType)
+struct FGodsentDialogueLine
+{
+	GENERATED_BODY()
+
+	FGodsentDialogueLine() = default;
+
+	FGodsentDialogueLine(AActor* InSpeaker, USoundBase* InSound, const FGameplayTag& InHeroVoiceLine, float InDelayBefore)
+		: Speaker(InSpeaker), Sound(InSound), HeroVoiceLine(InHeroVoiceLine), DelayBefore(InDelayBefore)
+	{
+	}
+
+	/// Who says it (the sound plays from them)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
+	TObjectPtr<AActor> Speaker;
+
+	/// The sound to play. Leave empty to use Hero Voice Line instead.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue")
+	TObjectPtr<USoundBase> Sound;
+
+	/// Only used when Sound is empty: this line from the speaker's voice (their Heir Appearance voice set)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue", meta = (Categories = "Voice"))
+	FGameplayTag HeroVoiceLine;
+
+	/// Wait this long before the line starts (after the last line has finished)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue", meta = (ClampMin = "0.0", Units = "s"))
+	float DelayBefore = 0.f;
 };

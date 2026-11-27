@@ -84,8 +84,14 @@ void AGodsentAIController::SetTargetActor(AActor* NewTargetActor)
 {
 	StopForgetTargetTimer();
 
+	const bool bHadTarget = GetTargetActor() != nullptr;
+
 	if (UBlackboardComponent* BlackboardComponent = GetBlackboardComponent())
 		BlackboardComponent->SetValueAsObject(TargetActorKeyName, NewTargetActor);
+
+	// Only the moment it notices someone, not every time the target is refreshed
+	if (!bHadTarget && NewTargetActor)
+		BP_OnTargetAcquired(NewTargetActor);
 }
 
 void AGodsentAIController::ClearTargetActor()

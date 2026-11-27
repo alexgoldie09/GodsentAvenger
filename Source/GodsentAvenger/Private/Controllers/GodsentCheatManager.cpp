@@ -10,6 +10,7 @@
 #include "GameplayTagContainer.h"
 #include "GodsentFunctionLibrary.h"
 #include "GodsentGameplayTags.h"
+#include "Subsystems/GodsentDialogueSubsystem.h"
 #include "Subsystems/GodsentLineageSubsystem.h"
 #include "Components/Aldegon/GodsentAldegonComponent.h"
 #include "Components/Flight/GodsentFlightComponent.h"
@@ -408,4 +409,48 @@ void UGodsentCheatManager::GodsentAldegonKillSummons()
 		Aldegon->KillAllSummons();
 		UE_LOG(LogTemp, Warning, TEXT("GodsentAldegonKillSummons: done"));
 	}
+}
+
+// ---- Dialogue (Stage 23) ----
+
+namespace
+{
+	/// Pause between the two entry lines for the cheat (the game mode has its own setting)
+	constexpr float CheatEntryGapDelay = 0.5f;
+}
+
+void UGodsentCheatManager::GodsentEntryLines()
+{
+	const AGodsentHeroController* HeroController = GetHeroController();
+	APawn* Hero = HeroController ? HeroController->GetPawn() : nullptr;
+	UGodsentDialogueSubsystem* Dialogue = UGodsentDialogueSubsystem::Get(GetOuterAPlayerController());
+
+	if (!Hero || !Dialogue)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GodsentEntryLines: no hero to speak"));
+		return;
+	}
+
+	TArray<FGodsentDialogueLine> EntryLines;
+	EntryLines.Add(FGodsentDialogueLine(Hero, nullptr, GodsentGameplayTags::Voice_Entry_Family, 0.f));
+	EntryLines.Add(FGodsentDialogueLine(Hero, nullptr, GodsentGameplayTags::Voice_Entry_Avenged, CheatEntryGapDelay));
+	Dialogue->PlayDialogue(EntryLines);
+}
+
+void UGodsentCheatManager::GodsentHeroVoiceLine(const FString& VoiceTag)
+{
+	const AGodsentHeroController* HeroController = GetHeroController();
+	APawn* Hero = HeroController ? HeroController->GetPawn() : nullptr;
+	UGodsentDialogueSubsystem* Dialogue = UGodsentDialogueSubsystem::Get(GetOuterAPlayerController());
+	const FGameplayTag VoiceLine = FGameplayTag::RequestGameplayTag(FName(*VoiceTag), false);
+
+	if (!Hero || !Dialogue || !VoiceLine.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("GodsentHeroVoiceLine: no hero, or '%s' isn't a tag"), *VoiceTag);
+		return;
+	}
+
+	TArray<FGodsentDialogueLine> Lines;
+	Lines.Add(FGodsentDialogueLine(Hero, nullptr, VoiceLine, 0.f));
+	Dialogue->PlayDialogue(Lines);
 }

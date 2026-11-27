@@ -4,7 +4,9 @@
 #include "Controllers/GodsentHeroController.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "GameFramework/Pawn.h"
 #include "GodsentGameInstance.h"
+#include "Subsystems/GodsentDialogueSubsystem.h"
 #include "Subsystems/GodsentLineageSubsystem.h"
 #include "TimerManager.h"
 
@@ -92,17 +94,20 @@ void AGodsentBaseGameMode::StartHeirPlay(AGodsentHeroController* HeroController)
 	HeroController->SetHeroInputBlocked(false);
 	HeroController->ResumeGameplay();
 
-	// Side modes never become the Continue level and don't commit on loading in
-	if (!bTracksLineage)
-		return;
+	UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this);
+	const bool bIsFounder = !Lineage || Lineage->GetLineageData().Generation <= 1;
 
-	if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
+	// Side modes never become the Continue level and don't commit on loading in
+	if (bTracksLineage && Lineage)
 	{
 		if (const UGodsentGameInstance* GodsentGameInstance = Cast<UGodsentGameInstance>(GetGameInstance()))
 			Lineage->SetLastLevelTag(GodsentGameInstance->FindLevelTagForWorld(GetWorld()));
 
 		Lineage->CommitProgress();
 	}
+
+	// Entry lines and anything else that starts with the heir live in the Blueprint
+	BP_OnHeirTookControl(HeroController->GetPawn(), bIsFounder);
 }
 
 /// The heir died: record it on the lineage now (+1 generation, +1 skill point, commit), show the lose screen after the delay
@@ -112,6 +117,10 @@ void AGodsentBaseGameMode::HandleHeroDefeated(AGodsentHeroController* HeroContro
 		return;
 
 	SetRunState(EGodsentRunState::Lost);
+
+	// A dead heir doesn't finish his lines
+	if (UGodsentDialogueSubsystem* Dialogue = UGodsentDialogueSubsystem::Get(this))
+		Dialogue->StopDialogueFor(HeroController->GetPawn());
 
 	// Side modes: the heir just retries; the family doesn't move on a generation
 	if (bTracksLineage)

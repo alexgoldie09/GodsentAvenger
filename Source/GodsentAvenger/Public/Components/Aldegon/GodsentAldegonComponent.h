@@ -15,12 +15,14 @@ class ACharacter;
 class UAnimMontage;
 class UGodsentFlightComponent;
 class UGodsentHoverComponent;
+class UAbilitySystemComponent;
 class UGameplayEffect;
 struct FAbilityEndedData;
 struct FOnAttributeChangeData;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAldegonStateChanged, EGodsentAldegonState, NewState, EGodsentAldegonState, OldState);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAldegonFightStarted, AActor*, Challenger);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAldegonChallengerDied, AActor*, DeadChallenger);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAldegonFightEnded, EGodsentBossFightEnd, Reason);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAldegonFrenzyStarted);
 
@@ -125,6 +127,10 @@ public:
 	/// Fight ended (player left, or he died): hide the boss bar here
 	UPROPERTY(BlueprintAssignable, Category = "Godsent|Aldegon|Fight")
 	FOnAldegonFightEnded OnFightEnded;
+
+	/// The player died during his fight (play his kill line from here, Dialogue subsystem)
+	UPROPERTY(BlueprintAssignable, Category = "Godsent|Aldegon|Fight")
+	FOnAldegonChallengerDied OnChallengerDied;
 
 	/// Health dropped to Frenzy At (his claws become unblockable)
 	UPROPERTY(BlueprintAssignable, Category = "Godsent|Aldegon|Fight")
@@ -428,6 +434,11 @@ private:
 
 	void OnDeadTagChanged(const FGameplayTag Tag, int32 NewCount);
 
+	/// Listens for the player dying during the fight (for On Challenger Died)
+	void WatchChallenger(AActor* NewChallenger);
+	void StopWatchingChallenger();
+	void OnChallengerDeadTagChanged(const FGameplayTag Tag, int32 NewCount);
+
 	/// Health bands and frenzy
 	void OnHealthChanged(const FOnAttributeChangeData& Data);
 
@@ -486,6 +497,10 @@ private:
 
 	bool bFightActive = false;
 	TWeakObjectPtr<AActor> Challenger;
+
+	/// The challenger's ability system and our Dead tag listener on it
+	TWeakObjectPtr<UAbilitySystemComponent> ChallengerASC;
+	FDelegateHandle ChallengerDeadTagDelegateHandle;
 
 	bool bLiftOffPending = false;
 	int32 AirborneBandsCrossed = 0;

@@ -20,6 +20,7 @@
 #include "GameplayEffectTypes.h"
 #include "GodsentFunctionLibrary.h"
 #include "GameModes/GodsentBaseGameMode.h"
+#include "Subsystems/GodsentDialogueSubsystem.h"
 #include "Subsystems/GodsentLineageSubsystem.h"
 #include "TimerManager.h"
 
@@ -123,6 +124,8 @@ void UGodsentAldegonComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		World->GetTimerManager().ClearTimer(HoverTimerHandle);
 		World->GetTimerManager().ClearTimer(KnockdownTimerHandle);
 	}
+
+	StopWatchingChallenger();
 
 	if (OwnerCharacter)
 	{
@@ -506,6 +509,12 @@ void UGodsentAldegonComponent::OnDeadTagChanged(const FGameplayTag Tag, int32 Ne
 	// His adds and totems die with him
 	KillAllSummons();
 
+	// No more talking (his death cry is in the death montage)
+	StopWatchingChallenger();
+
+	if (UGodsentDialogueSubsystem* Dialogue = UGodsentDialogueSubsystem::Get(this))
+		Dialogue->StopDialogueFor(OwnerCharacter);
+
 	if (bFightActive)
 	{
 		bFightActive = false;
@@ -577,13 +586,48 @@ void UGodsentAldegonComponent::StartFight(AActor* NewChallenger)
 		AIController->SetTargetActor(NewChallenger);
 
 	if (!bWasActive)
+	{
 		OnFightStarted.Broadcast(NewChallenger);
+		WatchChallenger(NewChallenger);
+	}
 
 	// Sitting down: On Sit Down Finished wakes him once he's settled
 	if (CurrentState == EGodsentAldegonState::Dormant)
 		Wake();
 	else if (CurrentState == EGodsentAldegonState::ReturningHome)
 		ResumeFromReturnHome();
+}
+
+void UGodsentAldegonComponent::WatchChallenger(AActor* NewChallenger)
+{
+	StopWatchingChallenger();
+
+	UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(NewChallenger);
+
+	if (!ASC)
+		return;
+
+	ChallengerASC = ASC;
+	ChallengerDeadTagDelegateHandle = ASC->RegisterGameplayTagEvent(GodsentGameplayTags::Shared_Status_Dead, EGameplayTagEventType::NewOrRemoved)
+		.AddUObject(this, &ThisClass::OnChallengerDeadTagChanged);
+}
+
+void UGodsentAldegonComponent::StopWatchingChallenger()
+{
+	if (UAbilitySystemComponent* ASC = ChallengerASC.Get())
+		ASC->RegisterGameplayTagEvent(GodsentGameplayTags::Shared_Status_Dead, EGameplayTagEventType::NewOrRemoved).Remove(ChallengerDeadTagDelegateHandle);
+
+	ChallengerASC.Reset();
+	ChallengerDeadTagDelegateHandle.Reset();
+}
+
+/// The player died during his fight
+void UGodsentAldegonComponent::OnChallengerDeadTagChanged(const FGameplayTag Tag, int32 NewCount)
+{
+	if (NewCount <= 0 || CurrentState == EGodsentAldegonState::Dead)
+		return;
+
+	OnChallengerDied.Broadcast(ChallengerASC.IsValid() ? ChallengerASC->GetAvatarActor() : nullptr);
 }
 
 void UGodsentAldegonComponent::EndFight()
@@ -593,6 +637,7 @@ void UGodsentAldegonComponent::EndFight()
 
 	bFightActive = false;
 	Challenger.Reset();
+	StopWatchingChallenger();
 
 	if (AGodsentAIController* AIController = OwnerCharacter ? Cast<AGodsentAIController>(OwnerCharacter->GetController()) : nullptr)
 		AIController->ClearTargetActor();

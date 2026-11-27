@@ -63,6 +63,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Godsent|AI")
 	void ClearTargetActor();
 
+	/// Fires when the enemy goes from no target to having one (it noticed the player, was hit first, or was summoned
+	/// straight at them). Play the alert sound from here, e.g. AIC_Zombie: Spawn Sound Attached (SC_Zombie_Alert).
+	UFUNCTION(BlueprintImplementableEvent, Category = "Godsent|AI", meta = (DisplayName = "On Target Acquired"))
+	void BP_OnTargetAcquired(AActor* NewTarget);
+
 	/// True if sight currently reports the actor (in the cone, in range, line of sight)
 	UFUNCTION(BlueprintPure, Category = "Godsent|AI")
 	bool IsActorCurrentlySeen(AActor* Actor) const;

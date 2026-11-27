@@ -137,6 +137,16 @@ public:
 	UFUNCTION(Exec)
 	void GodsentAldegonKillSummons();
 
+	// ---- Dialogue (Stage 23) ----
+
+	/// Plays the heir's two entry lines now (any generation), e.g. "GodsentEntryLines"
+	UFUNCTION(Exec)
+	void GodsentEntryLines();
+
+	/// Plays one line from the heir's voice through the Dialogue subsystem, e.g. "GodsentHeroVoiceLine Voice.Boss.All"
+	UFUNCTION(Exec)
+	void GodsentHeroVoiceLine(const FString& VoiceTag);
+
 private:
 	AGodsentHeroController* GetHeroController() const;
 	UGodsentAbilitySystemComponent* GetHeroASC() const;

@@ -13,6 +13,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
 #include "Sound/SoundBase.h"
+#include "Subsystems/GodsentDialogueSubsystem.h"
 
 namespace
 {
@@ -245,6 +246,13 @@ UAudioComponent* UHeirAppearanceComponent::PlaySound(USoundBase* Sound)
 {
 	if (!Sound)
 		return nullptr;
+
+	// No grunting over his own dialogue
+	if (const UGodsentDialogueSubsystem* Dialogue = UGodsentDialogueSubsystem::Get(this))
+	{
+		if (Dialogue->IsSpeaking(GetOwner()))
+			return nullptr;
+	}
 
 	if (bInterruptPreviousVoiceLine)
 		StopVoiceLine();

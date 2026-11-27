@@ -8,6 +8,7 @@
 #include "GodsentBaseGameMode.generated.h"
 
 class AGodsentHeroController;
+class APawn;
 class UGodsentLineageSubsystem;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRunStateChangedDelegate, EGodsentRunState, NewState);
@@ -92,6 +93,11 @@ protected:
 	/// Seconds after Handle Run Won before the win screen appears
 	UPROPERTY(EditDefaultsOnly, Category = "Run", meta = (ClampMin = "0.0", Units = "s"))
 	float WinScreenDelay = 3.f;
+
+	/// The heir has just taken control (after the name prompt and skill tree), every time the level starts.
+	/// Is Founder: the first heir of a new family (no one to mourn yet). Play entry lines from here (Dialogue subsystem).
+	UFUNCTION(BlueprintImplementableEvent, Category = "Godsent|Run", meta = (DisplayName = "On Heir Took Control"))
+	void BP_OnHeirTookControl(APawn* Hero, bool bIsFounder);
 
 private:
 	/// Add-on levels: false (and back to the main menu) if this level needs an add-on the player doesn't own

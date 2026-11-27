@@ -190,7 +190,8 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Voice_Parry, "Voice.Parry");   // landing a parry
 	UE_DEFINE_GAMEPLAY_TAG(Voice_NoStamina, "Voice.NoStamina");   // out of stamina
 	UE_DEFINE_GAMEPLAY_TAG(Voice_Sprint, "Voice.Sprint");   // starting a sprint
-	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Auntie, "Voice.Entry.Auntie");   // new heir's opening line
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Family, "Voice.Entry.Family");   // new heir mourning the last one (any relative)
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Auntie, "Voice.Entry.Auntie");   // old per-relative lines (no longer used, Entry.Family replaces them)
 	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Brother, "Voice.Entry.Brother");
 	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Cousin, "Voice.Entry.Cousin");
 	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Father, "Voice.Entry.Father");
@@ -200,7 +201,7 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Uncle, "Voice.Entry.Uncle");
 	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Wife, "Voice.Entry.Wife");
 	UE_DEFINE_GAMEPLAY_TAG(Voice_Entry_Avenged, "Voice.Entry.Avenged");   // "You will be avenged"
-	UE_DEFINE_GAMEPLAY_TAG(Voice_Boss_All, "Voice.Boss.All");   // boss fight line, any tree
+	UE_DEFINE_GAMEPLAY_TAG(Voice_Boss_All, "Voice.Boss.All");   // reply to the boss when the fight starts (the per-tree ones below are no longer used)
 	UE_DEFINE_GAMEPLAY_TAG(Voice_Boss_Constitution, "Voice.Boss.Constitution");
 	UE_DEFINE_GAMEPLAY_TAG(Voice_Boss_Dexterity, "Voice.Boss.Dexterity");
 	UE_DEFINE_GAMEPLAY_TAG(Voice_Boss_Fervour, "Voice.Boss.Fervour");
