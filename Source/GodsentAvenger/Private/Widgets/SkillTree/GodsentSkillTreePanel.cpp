@@ -276,7 +276,7 @@ bool UGodsentSkillTreePanel::TryUnlockNode(UGodsentSkillNodeWidget* Node)
 	USkillTreeComponent* SkillTree = GetSkillTree();
 
 	// The skill tree broadcasts on success, which refreshes the tree
-	return Node && SkillTree && SkillTree->TryUnlockSkill(Node->SkillTag);
+	return !bReadOnly && Node && SkillTree && SkillTree->TryUnlockSkill(Node->SkillTag);
 }
 
 void UGodsentSkillTreePanel::RefreshDisplayWindow()

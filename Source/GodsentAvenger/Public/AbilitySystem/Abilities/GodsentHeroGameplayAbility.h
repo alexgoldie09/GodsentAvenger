@@ -51,6 +51,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Ability")
 	bool FaceLockedOnTarget();
 	
+	/// Toggleable input pressed again while active: true = the ability handles it (Wait Input Press fires, so it can play
+	/// its off animation and end itself), false = cancel it straight away (the old toggle behaviour)
+	bool HandlesToggleOff() const { return bHandleToggleOffInAbility; }
+
 	/// Sends this ability's icon, and its cooldown if one is running, to the HUD slot for its input tag.
 	/// Called automatically on grant and on cooldown; the ASC's Broadcast Hero Ability UI calls it for widgets made later.
 	void BroadcastAbilityUI(const FGameplayAbilitySpec& Spec, const FGameplayAbilityActorInfo* ActorInfo) const;
@@ -62,6 +66,11 @@ protected:
 	virtual bool CheckCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
 	virtual void ApplyCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const override;
 	//~ End UGameplayAbility Interface.
+
+	/// Toggleable abilities (InputTag.Toggleable.*): pressing the button again fires Wait Input Press in this ability
+	/// instead of cancelling it, so it can play an "off" animation first (GA_Hero_Light). It must end itself.
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Toggle")
+	bool bHandleToggleOffInAbility = false;
 
 	/// HUD icon for this ability's slot. Leave empty for abilities without a slot (attack, dodge, block...)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")

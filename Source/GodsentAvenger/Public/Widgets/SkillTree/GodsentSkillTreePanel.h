@@ -58,6 +58,10 @@ public:
 	/// Called by a node when it's pressed. True if the skill was bought.
 	bool TryUnlockNode(UGodsentSkillNodeWidget* Node);
 
+	/// Read Only: the tree can be looked at but nothing can be bought (the pause menu)
+	UFUNCTION(BlueprintPure, Category = "Godsent|SkillTree")
+	bool IsReadOnly() const { return bReadOnly; }
+
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual FReply NativeOnFocusReceived(const FGeometry& InGeometry, const FFocusEvent& InFocusEvent) override;
@@ -99,6 +103,11 @@ protected:
 	/// On for the rebirth tree. Off for the pause screen page, which is built before it's shown: call Focus Initial Node there.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Tree")
 	bool bFocusOnOpen = false;
+
+	/// Look but don't buy: nodes still focus and show their details, but pressing them does nothing.
+	/// Tick it on the pause menu's tree; leave it off on the rebirth tree.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Tree")
+	bool bReadOnly = false;
 
 	/// Lines draw under everything else on the canvas
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Skill Tree")

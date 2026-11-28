@@ -128,6 +128,11 @@ void UGodsentSkillNodeWidget::NativeOnMouseEnter(const FGeometry& InGeometry, co
 void UGodsentSkillNodeWidget::HandleNodeClicked()
 {
 	UGodsentSkillTreePanel* Panel = OwningPanel.Get();
+
+	// Look but don't buy (pause menu): no attempt, so no "can't buy" feedback either
+	if (Panel && Panel->IsReadOnly())
+		return;
+
 	BP_OnUnlockAttempted(Panel && Panel->TryUnlockNode(this));
 }
 

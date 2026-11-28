@@ -33,6 +33,7 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Dodge_Takeoff, "Player.Event.Dodge.Takeoff");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Heal_Release, "Player.Event.Heal.Release");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Heal_HoldPoint, "Player.Event.Heal.HoldPoint");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Event_LightToggle, "Player.Event.LightToggle");   // the frame in the light anim where it switches on (or off, played backwards)
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Revive, "Player.Event.Revive");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Event_Revive_Rise, "Player.Event.Revive.Rise");
 
@@ -65,6 +66,7 @@ namespace GodsentGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_LightActive, "Player.Status.LightActive");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_StaminaRegenDelayed, "Player.Status.StaminaRegenDelayed");
 	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Reviving, "Player.Status.Reviving");
+	UE_DEFINE_GAMEPLAY_TAG(Player_Status_Falling, "Player.Status.Falling");   // in the air (jumped off something, knocked off a ledge): no dodging
 
 	/** Player Passive Tags **/
 	UE_DEFINE_GAMEPLAY_TAG(Player_Passive_HitStun, "Player.Passive.HitStun");

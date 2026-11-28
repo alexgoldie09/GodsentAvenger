@@ -21,11 +21,34 @@ void UGodsentAbilitySystemComponent::OnAbilityInputPressed(const FGameplayTag& I
 		// Marks the button as held, so Wait Input Release (e.g. the charged heal) knows to wait for it
 		AbilitySpec.InputPressed = true;
 
-		// Toggleable abilities cancel when pressed again while active
+		// Toggleable abilities cancel when pressed again while active, unless they handle turning off themselves
 		if (InputTag.MatchesTag(GodsentGameplayTags::InputTag_Toggleable) && AbilitySpec.IsActive())
-			CancelAbilityHandle(AbilitySpec.Handle);
+		{
+			const UGodsentHeroGameplayAbility* HeroAbility = Cast<UGodsentHeroGameplayAbility>(AbilitySpec.Ability);
+
+			if (HeroAbility && HeroAbility->HandlesToggleOff())
+				SendInputPressedToActiveAbility(AbilitySpec);
+			else
+				CancelAbilityHandle(AbilitySpec.Handle);
+		}
 		else
+		{
 			TryActivateAbility(AbilitySpec.Handle);
+		}
+	}
+}
+
+/// Fires Wait Input Press in the active ability (the engine only does this for its own InputID binding, not tag-bound input)
+void UGodsentAbilitySystemComponent::SendInputPressedToActiveAbility(FGameplayAbilitySpec& AbilitySpec)
+{
+	AbilitySpecInputPressed(AbilitySpec);
+
+	// Each running instance listens with its own activation key (Instanced Per Execution has no primary instance)
+	for (const UGameplayAbility* Instance : AbilitySpec.GetAbilityInstances())
+	{
+		if (Instance && Instance->IsActive())
+			InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputPressed, AbilitySpec.Handle,
+				Instance->GetCurrentActivationInfo().GetActivationPredictionKey());
 	}
 }
 

@@ -48,6 +48,9 @@ public:
 protected:
 	//~ Begin APawn Interface.
 	virtual void PossessedBy(AController* NewController) override;
+
+	/// Gives the hero Player.Status.Falling while he's in the air (abilities block on it, e.g. no dodging mid-fall)
+	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	//~ End APawn Interface.
 

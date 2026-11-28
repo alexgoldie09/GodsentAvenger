@@ -74,6 +74,17 @@ UHeroUIComponent* AGodsentHeroCharacter::GetHeroUIComponent() const
 }
 
 /// Loads the hero's startup data synchronously and gives it to the ASC
+void AGodsentHeroCharacter::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
+{
+	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
+
+	if (UGodsentAbilitySystemComponent* ASC = GetGodsentAbilitySystemComponent())
+	{
+		const bool bIsFalling = GetCharacterMovement() && GetCharacterMovement()->IsFalling();
+		ASC->SetLooseGameplayTagCount(GodsentGameplayTags::Player_Status_Falling, bIsFalling ? 1 : 0);
+	}
+}
+
 void AGodsentHeroCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);

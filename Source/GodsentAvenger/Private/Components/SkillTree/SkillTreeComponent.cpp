@@ -92,6 +92,20 @@ EGodsentSkillState USkillTreeComponent::GetSkillState(FGameplayTag SkillTag) con
 	return EGodsentSkillState::Available;
 }
 
+bool USkillTreeComponent::HasSkillToBuy() const
+{
+	if (!SkillTreeData)
+		return false;
+
+	for (const FGodsentSkillNode& SkillNode : SkillTreeData->SkillNodes)
+	{
+		if (GetSkillState(SkillNode.SkillTag) == EGodsentSkillState::Available)
+			return true;
+	}
+
+	return false;
+}
+
 /// The skill's data, or false if it isn't in the tree
 bool USkillTreeComponent::GetSkillNode(FGameplayTag SkillTag, FGodsentSkillNode& OutSkillNode) const
 {

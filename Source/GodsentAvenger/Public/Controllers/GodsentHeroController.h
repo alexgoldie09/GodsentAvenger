@@ -6,6 +6,7 @@
 #include "GenericTeamAgentInterface.h"
 #include "GameFramework/PlayerController.h"
 #include "GodsentTypes/GodsentStructTypes.h"
+#include "Containers/Ticker.h"
 #include "GodsentHeroController.generated.h"
 
 class UGodsentTutorialPopupWidget;
@@ -40,14 +41,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Rebirth")
 	bool SubmitHeirName(const FString& ProposedName, FText& OutReason);
 
-	/// Called by the rebirth skill tree's Continue button: closes it and tells the game mode to start play
+	/// Called by the rebirth skill tree's Continue button (and by itself once a skill is bought): closes it and tells the game mode to start play
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Rebirth")
 	void CloseRebirthSkillTree();
 
 	/// Opens the name prompt (paused). False if no Heir Name Widget Class is set.
 	bool ShowHeirNamePrompt();
 
-	/// Opens the rebirth skill tree (paused). False if no Rebirth Skill Tree Widget Class is set.
+	/// Opens the rebirth skill tree (paused). False if no Rebirth Skill Tree Widget Class is set,
+	/// or there's nothing to buy (maxed out, or no points), so play starts straight away.
 	bool ShowRebirthSkillTree();
 
 	/// Shows the lose screen (not paused, so the world carries on behind it)
@@ -79,6 +81,7 @@ public:
 protected:
 	/// Reports to the game mode, which decides whether to show the name prompt or start play
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	//~ Begin AController Interface.
 	/// Loads the lineage's skills into the skill tree, re-applies them to the new heir, and listens for its death (reported to the game mode)
@@ -108,6 +111,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Rebirth")
 	int32 RebirthWidgetZOrder = 100;
 
+	/// Buying a skill on the rebirth tree confirms it: the tree closes this many seconds later (real seconds, the game
+	/// is paused) so the unlock can be seen first
+	UPROPERTY(EditDefaultsOnly, Category = "Rebirth", meta = (ClampMin = "0.0", Units = "s"))
+	float RebirthCloseAfterBuyDelay = 1.f;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "SkillTree")
 	TObjectPtr<USkillTreeComponent> SkillTreeComponent;
 
@@ -123,6 +131,16 @@ private:
 
 	void OnHeroDeadTagChanged(const FGameplayTag Tag, int32 NewCount);
 	void UnbindHeroDeath();
+
+	/// A skill was bought on the rebirth tree: close it after Rebirth Close After Buy Delay
+	UFUNCTION()
+	void OnRebirthSkillBought(FGameplayTag SkillTag);
+
+	/// Stops listening for rebirth buys and drops a pending close
+	void StopRebirthAutoClose();
+
+	/// The pending close (a core ticker, because world timers don't run while paused)
+	FTSTicker::FDelegateHandle RebirthCloseTickerHandle;
 
 	FGenericTeamId HeroTeamId;
 

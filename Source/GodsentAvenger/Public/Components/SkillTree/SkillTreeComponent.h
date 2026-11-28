@@ -54,6 +54,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Godsent|SkillTree", meta = (GameplayTagFilter = "Skill"))
 	bool GetSkillNode(FGameplayTag SkillTag, FGodsentSkillNode& OutSkillNode) const;
 
+	/// True if at least one skill can be bought right now (prerequisites owned and enough points).
+	/// False when maxed out or out of points, so the rebirth tree doesn't open for nothing.
+	UFUNCTION(BlueprintPure, Category = "Godsent|SkillTree")
+	bool HasSkillToBuy() const;
+
 	/// Buys the skill if it's Available: spends the points, applies it to the hero and broadcasts. Returns true on success.
 	UFUNCTION(BlueprintCallable, Category = "Godsent|SkillTree", meta = (GameplayTagFilter = "Skill"))
 	bool TryUnlockSkill(FGameplayTag SkillTag);

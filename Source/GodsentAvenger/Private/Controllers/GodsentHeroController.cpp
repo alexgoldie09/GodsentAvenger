@@ -64,6 +64,13 @@ void AGodsentHeroController::OnPossess(APawn* InPawn)
 	}
 }
 
+void AGodsentHeroController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	StopRebirthAutoClose();
+
+	Super::EndPlay(EndPlayReason);
+}
+
 void AGodsentHeroController::OnUnPossess()
 {
 	UnbindHeroDeath();
@@ -140,6 +147,13 @@ bool AGodsentHeroController::ShowRebirthSkillTree()
 	if (!RebirthSkillTreeWidgetClass)
 		return false;
 
+	// Maxed out or no points: nothing to choose, so don't open it
+	if (SkillTreeComponent && !SkillTreeComponent->HasSkillToBuy())
+	{
+		UE_LOG(LogTemp, Display, TEXT("[Lineage] Nothing to buy on the skill tree: skipping it"));
+		return false;
+	}
+
 	RemoveWidget(RebirthSkillTreeWidget);
 	RebirthSkillTreeWidget = CreateWidget<UUserWidget>(this, RebirthSkillTreeWidgetClass);
 
@@ -147,12 +161,56 @@ bool AGodsentHeroController::ShowRebirthSkillTree()
 		return false;
 
 	ShowMenuWidget(RebirthSkillTreeWidget, true);
+
+	// Buying a skill confirms it
+	if (SkillTreeComponent)
+		SkillTreeComponent->OnSkillUnlocked.AddUniqueDynamic(this, &ThisClass::OnRebirthSkillBought);
+
 	return true;
+}
+
+void AGodsentHeroController::OnRebirthSkillBought(FGameplayTag SkillTag)
+{
+	// Already closing
+	if (!RebirthSkillTreeWidget || RebirthCloseTickerHandle.IsValid())
+		return;
+
+	TWeakObjectPtr<AGodsentHeroController> WeakThis = this;
+
+	RebirthCloseTickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([WeakThis](float)
+	{
+		if (AGodsentHeroController* HeroController = WeakThis.Get())
+		{
+			HeroController->RebirthCloseTickerHandle.Reset();
+			HeroController->CloseRebirthSkillTree();
+		}
+
+		// Once only
+		return false;
+	}), RebirthCloseAfterBuyDelay);
+}
+
+void AGodsentHeroController::StopRebirthAutoClose()
+{
+	if (SkillTreeComponent)
+		SkillTreeComponent->OnSkillUnlocked.RemoveDynamic(this, &ThisClass::OnRebirthSkillBought);
+
+	if (RebirthCloseTickerHandle.IsValid())
+	{
+		FTSTicker::GetCoreTicker().RemoveTicker(RebirthCloseTickerHandle);
+		RebirthCloseTickerHandle.Reset();
+	}
 }
 
 /// Called by the rebirth skill tree's Continue button
 void AGodsentHeroController::CloseRebirthSkillTree()
 {
+	StopRebirthAutoClose();
+
+	// Already closed (Continue pressed while a buy was about to close it)
+	if (!RebirthSkillTreeWidget)
+		return;
+
 	RemoveWidget(RebirthSkillTreeWidget);
 
 	if (AGodsentBaseGameMode* GameMode = AGodsentBaseGameMode::Get(this))

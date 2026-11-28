@@ -2,6 +2,8 @@
 
 #include "Characters/GodsentEnemyCharacter.h"
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Engine/AssetManager.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -42,6 +44,12 @@ AGodsentEnemyCharacter::AGodsentEnemyCharacter()
 	RightHandCollisionBox->SetupAttachment(GetMesh());
 	RightHandCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	RightHandCollisionBox->OnComponentBeginOverlap.AddUniqueDynamic(this, &ThisClass::OnBodyCollisionBoxBeginOverlap);
+
+	// The player's camera boom passes through enemies instead of being pulled in by a swipe or a body
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	LeftHandCollisionBox->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	RightHandCollisionBox->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 }
 
 UPawnCombatComponent* AGodsentEnemyCharacter::GetPawnCombatComponent() const

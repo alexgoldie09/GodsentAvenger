@@ -54,4 +54,8 @@ public:
 	/// Call it from whatever creates the overlay widget, after the widget exists (abilities granted earlier fired before anyone was listening).
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Ability")
 	void BroadcastHeroAbilityUI();
+
+private:
+	/// Fires Wait Input Press in the active ability (for tag-bound input; the engine only does it for InputID binding)
+	void SendInputPressedToActiveAbility(FGameplayAbilitySpec& AbilitySpec);
 };
