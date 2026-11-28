@@ -26,3 +26,12 @@ void UGodsentAldegonAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSec
 	bIsFlying = AldegonComponent->IsFlying();
 	bMirrorAttack = AldegonComponent->IsClawMirrored();
 }
+
+/// Spawned Aldegons build their Blueprint components after the mesh starts animating, so keep looking until it's there
+void UGodsentAldegonAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
+{
+	Super::NativeUpdateAnimation(DeltaSeconds);
+
+	if (!AldegonComponent && OwningCharacter)
+		AldegonComponent = OwningCharacter->FindComponentByClass<UGodsentAldegonComponent>();
+}
