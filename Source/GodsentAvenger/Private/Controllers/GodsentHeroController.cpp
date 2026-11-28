@@ -11,6 +11,7 @@
 #include "GameModes/GodsentBaseGameMode.h"
 #include "GodsentGameplayTags.h"
 #include "Subsystems/GodsentLineageSubsystem.h"
+#include "Widgets/GodsentTutorialPopupWidget.h"
 
 AGodsentHeroController::AGodsentHeroController()
 {
@@ -214,6 +215,32 @@ void AGodsentHeroController::RemoveWidget(TObjectPtr<UUserWidget>& Widget)
 		Widget->RemoveFromParent();
 		Widget = nullptr;
 	}
+}
+
+bool AGodsentHeroController::ShowTutorialPopup(TSubclassOf<UGodsentTutorialPopupWidget> PopupWidgetClass)
+{
+	if (!PopupWidgetClass || TutorialPopupWidget)
+		return false;
+
+	TutorialPopupWidget = CreateWidget<UUserWidget>(this, PopupWidgetClass);
+
+	if (!TutorialPopupWidget)
+		return false;
+
+	ShowMenuWidget(TutorialPopupWidget, true);
+	return true;
+}
+
+void AGodsentHeroController::CloseTutorialPopup()
+{
+	if (!TutorialPopupWidget)
+		return;
+
+	RemoveWidget(TutorialPopupWidget);
+
+	// The button that closed it (X) mustn't also dodge once the game has input again
+	FlushPressedKeys();
+	ResumeGameplay();
 }
 
 /// Unpauses and gives input back to the game

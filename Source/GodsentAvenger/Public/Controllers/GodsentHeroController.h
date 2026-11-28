@@ -8,6 +8,7 @@
 #include "GodsentTypes/GodsentStructTypes.h"
 #include "GodsentHeroController.generated.h"
 
+class UGodsentTutorialPopupWidget;
 class UAbilitySystemComponent;
 class USkillTreeComponent;
 class UUserWidget;
@@ -57,6 +58,17 @@ public:
 
 	/// Unpauses and gives input back to the game
 	void ResumeGameplay();
+
+	// ---- Tutorial (a Godsent Tutorial Trigger asks for it) ----
+
+	/// Opens a tutorial popup (paused, focused). False if the class is empty or one is already open.
+	bool ShowTutorialPopup(TSubclassOf<UGodsentTutorialPopupWidget> PopupWidgetClass);
+
+	/// Closes the tutorial popup and gives control back (the popup calls this when it's done)
+	void CloseTutorialPopup();
+
+	UFUNCTION(BlueprintPure, Category = "Godsent|Tutorial")
+	bool IsTutorialPopupOpen() const { return TutorialPopupWidget != nullptr; }
 
 	/// Stops (or restores) the heir's movement, camera and ability input, e.g. while waiting for the name prompt
 	void SetHeroInputBlocked(bool bBlocked);
@@ -122,6 +134,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UUserWidget> EndScreenWidget;
+
+	UPROPERTY()
+	TObjectPtr<UUserWidget> TutorialPopupWidget;
 
 	TWeakObjectPtr<UAbilitySystemComponent> BoundHeroASC;
 	FDelegateHandle HeroDeadTagHandle;
