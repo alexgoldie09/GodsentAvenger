@@ -1,6 +1,7 @@
 // Alex Goldberg rights reserved
 
 #include "Components/SkillTree/SkillTreeComponent.h"
+#include "GameModes/GodsentBaseGameMode.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "GameplayEffect.h"
 #include "AbilitySystem/GodsentAbilitySystemComponent.h"
@@ -46,8 +47,19 @@ void USkillTreeComponent::ExportProgress(int32& OutSkillPoints, FGameplayTagCont
 	OutUnlockedSkills = UnlockedSkills;
 }
 
+bool USkillTreeComponent::IsLinkedToLineage() const
+{
+	// No Godsent game mode (a test map): the family's skills, as before
+	const AGodsentBaseGameMode* GameMode = AGodsentBaseGameMode::Get(this);
+	return !GameMode || GameMode->UsesFamilySkills();
+}
+
 void USkillTreeComponent::LoadFromLineage()
 {
+	// The DLC has its own skills: start empty and keep whatever this session earns
+	if (!IsLinkedToLineage())
+		return;
+
 	if (const UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
 	{
 		const FGodsentLineageData LineageData = Lineage->GetLineageData();
@@ -57,6 +69,10 @@ void USkillTreeComponent::LoadFromLineage()
 
 void USkillTreeComponent::SaveToLineage() const
 {
+	// Nothing from the DLC reaches the family
+	if (!IsLinkedToLineage())
+		return;
+
 	if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
 	{
 		int32 ExportedPoints = 0;

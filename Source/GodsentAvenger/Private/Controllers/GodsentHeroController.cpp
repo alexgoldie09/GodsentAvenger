@@ -175,6 +175,10 @@ void AGodsentHeroController::OnRebirthSkillBought(FGameplayTag SkillTag)
 	if (!RebirthSkillTreeWidget || RebirthCloseTickerHandle.IsValid())
 		return;
 
+	// Points left and something to spend them on: stay open
+	if (SkillTreeComponent && SkillTreeComponent->HasSkillToBuy())
+		return;
+
 	TWeakObjectPtr<AGodsentHeroController> WeakThis = this;
 
 	RebirthCloseTickerHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([WeakThis](float)

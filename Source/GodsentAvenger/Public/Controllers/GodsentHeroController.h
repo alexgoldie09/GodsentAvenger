@@ -111,8 +111,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Rebirth")
 	int32 RebirthWidgetZOrder = 100;
 
-	/// Buying a skill on the rebirth tree confirms it: the tree closes this many seconds later (real seconds, the game
-	/// is paused) so the unlock can be seen first
+	/// Once every point is spent (nothing left to buy), the rebirth tree closes this many seconds later (real seconds,
+	/// the game is paused) so the last unlock can be seen first
 	UPROPERTY(EditDefaultsOnly, Category = "Rebirth", meta = (ClampMin = "0.0", Units = "s"))
 	float RebirthCloseAfterBuyDelay = 1.f;
 
@@ -132,7 +132,7 @@ private:
 	void OnHeroDeadTagChanged(const FGameplayTag Tag, int32 NewCount);
 	void UnbindHeroDeath();
 
-	/// A skill was bought on the rebirth tree: close it after Rebirth Close After Buy Delay
+	/// A skill was bought on the rebirth tree: close it after Rebirth Close After Buy Delay if there's nothing left to buy
 	UFUNCTION()
 	void OnRebirthSkillBought(FGameplayTag SkillTag);
 

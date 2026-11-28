@@ -51,8 +51,8 @@ public:
 	/// The name prompt was confirmed with a valid name (already stored on the lineage)
 	void HandleHeirNamed(AGodsentHeroController* HeroController);
 
-	/// The rebirth skill tree's Continue button was pressed
-	void HandleRebirthSkillsChosen(AGodsentHeroController* HeroController);
+	/// The rebirth skill tree was closed (Continue, or every point spent)
+	virtual void HandleRebirthSkillsChosen(AGodsentHeroController* HeroController);
 
 	/// The heir gained the Dead tag
 	void HandleHeroDefeated(AGodsentHeroController* HeroController);
@@ -76,11 +76,20 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Godsent|Run")
 	bool TracksLineage() const { return bTracksLineage; }
 
+	/// False when the level has its own skills (the DLC: starts with none, nothing saved to the family)
+	UFUNCTION(BlueprintPure, Category = "Godsent|Run")
+	bool UsesFamilySkills() const { return bUsesFamilySkills; }
+
 protected:
 	/// On: the main game (name prompt, deaths move the family on, Continue returns here).
 	/// Off: a side mode such as the DLC (no name prompt, deaths aren't recorded, never the Continue level).
 	UPROPERTY(EditDefaultsOnly, Category = "Run")
 	bool bTracksLineage = true;
+
+	/// On: the heir has the family's skills, and buying or earning points saves to the family.
+	/// Off (the DLC): skills start empty every time and nothing is saved.
+	UPROPERTY(EditDefaultsOnly, Category = "Run")
+	bool bUsesFamilySkills = true;
 
 	/// Seconds after the level loads before the name prompt appears (the heir can't move meanwhile). 0 = straight away.
 	UPROPERTY(EditDefaultsOnly, Category = "Run", meta = (ClampMin = "0.0", Units = "s"))
@@ -99,6 +108,11 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Godsent|Run", meta = (DisplayName = "On Heir Took Control"))
 	void BP_OnHeirTookControl(APawn* Hero, bool bIsFounder);
 
+	/// The heir has just taken control (before On Heir Took Control fires in the Blueprint)
+	virtual void NativeOnHeirTookControl(APawn* Hero, bool bIsFounder) {}
+
+	void SetRunState(EGodsentRunState NewState);
+
 private:
 	/// Add-on levels: false (and back to the main menu) if this level needs an add-on the player doesn't own
 	bool CheckLevelOwnership();
@@ -110,8 +124,6 @@ private:
 
 	/// The heir takes control: unpause, give input back, record the level and commit ("loading in")
 	void StartHeirPlay(AGodsentHeroController* HeroController);
-
-	void SetRunState(EGodsentRunState NewState);
 
 	/// Runs Action on the controller after Delay seconds (straight away for 0), unless the controller is gone by then
 	void RunAfterDelay(AGodsentHeroController* HeroController, float Delay, TFunction<void(AGodsentHeroController*)> Action);

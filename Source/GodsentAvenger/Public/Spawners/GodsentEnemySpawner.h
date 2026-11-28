@@ -60,6 +60,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Spawner", meta = (WorldContext = "WorldContextObject"))
 	static void ResetAllSpawners(const UObject* WorldContextObject, int32 NewEnemyLevel = 0, bool bDestroySpawnedEnemies = true);
 
+	/// Wave mode (DLC): clears the last wave (bodies included), then spawns Wave Enemy Count enemies from Wave Pool at
+	/// Wave Enemy Level. The lineage tier isn't added. The spawner stays Manual from then on.
+	void SpawnWave(const TArray<FGodsentEnemySpawnEntry>& WavePool, int32 WaveEnemyCount, int32 WaveEnemyLevel);
+
+	/// Stops it spawning on its own (proximity / begin play), and clears anything it already spawned. Wave mode uses this.
+	void DisableAutoActivation();
+
 	/// Level the next enemies are spawned at (their curve table rows are read at this level)
 	UFUNCTION(BlueprintCallable, Category = "Godsent|Spawner")
 	void SetEnemyLevel(int32 NewEnemyLevel) { EnemyLevel = FMath::Max(NewEnemyLevel, 1); }

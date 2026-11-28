@@ -110,7 +110,8 @@ void AGodsentEnemySpawner::SpawnEnemies()
 	UsedSpawnLocations.Reset();
 	PendingSpawnCount = FMath::RandRange(MinSpawnCount, FMath::Max(MinSpawnCount, MaxSpawnCount));
 
-	if (EnemyPool.IsEmpty())
+	// A wave with no enemies from spawners (a boss wave) is fine
+	if (EnemyPool.IsEmpty() && PendingSpawnCount > 0)
 		UE_LOG(LogTemp, Warning, TEXT("%s: Enemy Pool is empty, nothing to spawn"), *GetName());
 
 	// Already in memory (an earlier run, or another spawner loaded them): go now
@@ -437,6 +438,30 @@ void AGodsentEnemySpawner::ResetSpawner(bool bDestroySpawnedEnemies)
 	default:
 		break;
 	}
+}
+
+void AGodsentEnemySpawner::SpawnWave(const TArray<FGodsentEnemySpawnEntry>& WavePool, int32 WaveEnemyCount, int32 WaveEnemyLevel)
+{
+	DisableAutoActivation();
+
+	EnemyPool = WavePool;
+	MinSpawnCount = FMath::Max(WaveEnemyCount, 0);
+	MaxSpawnCount = MinSpawnCount;
+	EnemyLevel = FMath::Max(WaveEnemyLevel, 1);
+	bScaleWithLineageTier = false;
+
+	ResetSpawner(true);
+	SpawnEnemies();
+}
+
+void AGodsentEnemySpawner::DisableAutoActivation()
+{
+	ActivationMode = EGodsentSpawnerActivation::Manual;
+	SetActivationArmed(false);
+
+	// It went off by itself before the waves took over: clear those out
+	if (bHasSpawned)
+		ResetSpawner(true);
 }
 
 /// Resets every spawner in the world (the rebirth loop calls this)

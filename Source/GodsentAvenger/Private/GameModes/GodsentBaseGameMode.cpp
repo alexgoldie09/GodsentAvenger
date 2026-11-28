@@ -77,7 +77,7 @@ void AGodsentBaseGameMode::HandleHeirNamed(AGodsentHeroController* HeroControlle
 	StartHeirPlay(HeroController);
 }
 
-/// The rebirth skill tree's Continue button was pressed
+/// The rebirth skill tree was closed (Continue, or every point spent)
 void AGodsentBaseGameMode::HandleRebirthSkillsChosen(AGodsentHeroController* HeroController)
 {
 	if (!HeroController || RunState != EGodsentRunState::ChoosingSkills)
@@ -107,6 +107,7 @@ void AGodsentBaseGameMode::StartHeirPlay(AGodsentHeroController* HeroController)
 	}
 
 	// Entry lines and anything else that starts with the heir live in the Blueprint
+	NativeOnHeirTookControl(HeroController->GetPawn(), bIsFounder);
 	BP_OnHeirTookControl(HeroController->GetPawn(), bIsFounder);
 }
 

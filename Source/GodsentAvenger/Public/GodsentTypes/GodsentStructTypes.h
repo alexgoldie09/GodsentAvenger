@@ -187,3 +187,26 @@ struct FGodsentDialogueLine
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dialogue", meta = (ClampMin = "0.0", Units = "s"))
 	float DelayBefore = 0.f;
 };
+
+/// One wave of the DLC's wave mode (Godsent DLC Game Mode)
+USTRUCT(BlueprintType)
+struct FGodsentDLCWave
+{
+	GENERATED_BODY()
+
+	/// What the spawners send this wave (weighted, e.g. Zombie 2 + Ghost 1)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wave")
+	TArray<FGodsentEnemySpawnEntry> EnemyPool;
+
+	/// How many each spawner sends (0 = none, e.g. a boss-only wave)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wave", meta = (ClampMin = "0"))
+	int32 EnemiesPerSpawner = 2;
+
+	/// Level the wave's enemies (and its boss) are spawned at
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wave", meta = (ClampMin = "1"))
+	int32 EnemyLevel = 1;
+
+	/// Also spawned at the boss marker and sent straight at the player (Aldegon on the last wave). Empty = no boss.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Wave")
+	TSoftClassPtr<AGodsentEnemyCharacter> BossClass;
+};

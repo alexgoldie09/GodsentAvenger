@@ -521,9 +521,14 @@ void UGodsentAldegonComponent::OnDeadTagChanged(const FGameplayTag Tag, int32 Ne
 		OnFightEnded.Broadcast(EGodsentBossFightEnd::BossDefeated);
 	}
 
-	// Remembered for the main menu (saved straight away), then the run is won
-	if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
-		Lineage->RecordBossDefeated(BossTag);
+	// Remembered for the main menu (saved straight away), then the run is won. Only in the main game: the DLC doesn't count.
+	const AGodsentBaseGameMode* CurrentGameMode = AGodsentBaseGameMode::Get(this);
+
+	if (!CurrentGameMode || CurrentGameMode->TracksLineage())
+	{
+		if (UGodsentLineageSubsystem* Lineage = UGodsentLineageSubsystem::Get(this))
+			Lineage->RecordBossDefeated(BossTag);
+	}
 
 	if (bWinRunOnDefeat)
 	{

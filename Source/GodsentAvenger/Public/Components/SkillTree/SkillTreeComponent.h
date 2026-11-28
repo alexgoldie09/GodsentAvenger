@@ -96,6 +96,9 @@ protected:
 	TObjectPtr<UDataAsset_SkillTree> SkillTreeData;
 
 private:
+	/// False in a level with its own skills (the DLC): nothing is loaded from or saved to the family
+	bool IsLinkedToLineage() const;
+
 	/// Grants or levels the ability and applies the passive effect of one skill
 	void ApplySkillNode(const FGodsentSkillNode& SkillNode);
 
